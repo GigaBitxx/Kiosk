@@ -330,6 +330,61 @@ if ($search_performed) {
         .result-card .card-text strong {
             font-weight: 600;
         }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            body {
+                padding: 16px 12px;
+            }
+            .search-shell {
+                width: 100%;
+                padding: 1.5rem 1.25rem;
+                box-sizing: border-box;
+            }
+            .search-container {
+                padding: 1rem;
+            }
+            .page-heading .d-flex {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+            .btn-back {
+                padding: 0.45rem 1rem;
+            }
+            .filter-tabs {
+                gap: 0.35rem;
+            }
+            .result-card .row {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+            .result-card .col-md-4 {
+                text-align: left !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .search-shell {
+                padding: 1.25rem 1rem;
+            }
+            .search-container {
+                padding: 0.9rem;
+            }
+            .page-heading h1 {
+                font-size: clamp(1.5rem, 5vw, 1.8rem);
+            }
+            .filter-btn {
+                padding: 0.55rem 1rem;
+                font-size: 0.95rem;
+            }
+            .result-card .card-title {
+                font-size: 15px;
+            }
+            .result-card .card-text {
+                font-size: 13px;
+            }
+        }
     </style>
 </head>
 <body>
