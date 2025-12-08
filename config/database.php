@@ -1,11 +1,13 @@
 <?php
-$host = 'localhost';
-$username = 'root';
-$password = '';
-$database = 'cemetery_db';
+// Prefer environment variables (Railway, .env, etc.), fall back to local defaults.
+$host     = getenv('DB_HOST') ?: 'localhost';
+$port     = getenv('DB_PORT') ?: '3306';
+$username = getenv('DB_USER') ?: 'root';
+$password = getenv('DB_PASSWORD') ?: '';
+$database = getenv('DB_NAME') ?: 'cemetery_db';
 
-// Create connection
-$conn = mysqli_connect($host, $username, $password, $database);
+// Create connection (include port)
+$conn = mysqli_connect($host, $username, $password, $database, (int)$port);
 
 // Check connection
 if (!$conn) {
