@@ -1,0 +1,69 @@
+/* UI Settings Styles */
+body {
+    transition: all 0.3s ease;
+}
+
+/* Font Size Classes */
+body.font-small {
+    font-size: 14px;
+}
+body.font-medium {
+    font-size: 16px;
+}
+body.font-large {
+    font-size: 18px;
+}
+body.font-xlarge {
+    font-size: 20px;
+}
+
+/* High Contrast Mode */
+body.high-contrast {
+    background: #000 !important;
+    color: #fff !important;
+}
+body.high-contrast .settings-section,
+body.high-contrast .sidebar,
+body.high-contrast input,
+body.high-contrast select,
+body.high-contrast .card,
+body.high-contrast table,
+body.high-contrast th,
+body.high-contrast td,
+body.high-contrast .modal-content,
+body.high-contrast .modal-header,
+body.high-contrast .modal-body,
+body.high-contrast .detail-item {
+    background: #000 !important;
+    color: #fff !important;
+    border-color: #fff !important;
+}
+body.high-contrast .sidebar a {
+    color: #fff !important;
+}
+body.high-contrast .sidebar a:hover,
+body.high-contrast .sidebar a.active {
+    background: #333 !important;
+}
+body.high-contrast .badge {
+    border: 1px solid #fff;
+}
+body.high-contrast .btn {
+    background: #333 !important;
+    color: #fff !important;
+    border-color: #fff !important;
+}
+body.high-contrast .btn:hover {
+    background: #444 !important;
+}
+
+/* Brightness Mode */
+body.brightness {
+    filter: brightness(1.2);
+}
+
+/* Ensure transitions are smooth */
+body,
+body * {
+    transition: all 0.3s ease;
+} 
