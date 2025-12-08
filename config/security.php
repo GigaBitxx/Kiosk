@@ -357,5 +357,3 @@ function is_admin_limit_reached($conn, $max_admins = MAX_STANDARD_ADMINS) {
     $current_count = get_admin_count($conn);
     return $current_count >= $max_admins;
 }
-?>
-
