@@ -195,8 +195,9 @@ if ($result) {
             left: 50%;
             transform: translateX(-50%);
             margin: 0;
+            width: min(800px, calc(100vw - 120px));
             max-width: 800px;
-            min-width: 650px;
+            min-width: 0;
             background: rgba(255, 255, 255, 0.95);
             padding: 10px 12px;
             border-radius: 8px;
@@ -279,8 +280,9 @@ if ($result) {
             .controls {
                 left: 50%;
                 transform: translateX(-50%);
-                max-width: calc(100vw - 380px);
-                min-width: auto;
+                width: min(800px, calc(100vw - 200px));
+                max-width: min(800px, calc(100vw - 200px));
+                min-width: 0;
                 margin-left: 0;
                 margin-right: 0;
             }
@@ -289,16 +291,18 @@ if ($result) {
             .controls {
                 left: 50%;
                 transform: translateX(-50%);
-                max-width: calc(100vw - 360px);
-                min-width: auto;
+                width: min(800px, calc(100vw - 140px));
+                max-width: min(800px, calc(100vw - 140px));
+                min-width: 0;
             }
         }
         @media (max-width: 768px) {
             .controls {
                 left: 50%;
                 transform: translateX(-50%);
+                width: calc(100vw - 20px);
                 max-width: calc(100vw - 20px);
-                min-width: auto;
+                min-width: 0;
                 flex-direction: column;
                 align-items: stretch;
                 margin: 0;
@@ -318,6 +322,46 @@ if ($result) {
                 max-width: 100%;
                 width: calc(100% - 32px);
                 max-height: none;
+            }
+        }
+
+        /* Tighter mobile layout for very small screens */
+        @media (max-width: 640px) {
+            .controls {
+                top: 12px;
+                width: calc(100vw - 18px);
+                max-width: calc(100vw - 18px);
+                padding: 10px;
+                gap: 6px;
+            }
+            .search-container {
+                flex-direction: column;
+                gap: 6px;
+            }
+            .search-container .btn {
+                width: 100%;
+                min-width: 0;
+            }
+            .control-buttons {
+                justify-content: flex-start;
+            }
+            .back-to-home-btn {
+                top: 12px;
+                left: 12px;
+            }
+            .map-type-toggle {
+                bottom: 78px;
+                left: 12px;
+            }
+            .map-type-btn {
+                width: 76px;
+                height: 76px;
+                border-radius: 14px;
+            }
+            .search-suggestion-panel {
+                left: 12px;
+                right: 12px;
+                padding: 12px;
             }
         }
 
