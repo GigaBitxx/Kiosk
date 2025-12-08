@@ -296,15 +296,14 @@ require_once 'config/database.php';
             body {
                 overflow-y: auto;
             }
-            .action-toggle {
-                position: absolute;
-                top: 1.5rem;
-                left: 1.5rem;
+            .home-wrapper {
+                padding: 1.25rem 0 1.75rem;
             }
+            .action-toggle,
             .help-toggle {
-                position: absolute;
-                top: 1.5rem;
-                right: 1.5rem;
+                position: static;
+                margin-bottom: 0.75rem;
+                gap: 0.75rem;
             }
             .hero-header {
                 flex-direction: column;
@@ -314,20 +313,40 @@ require_once 'config/database.php';
                 flex-direction: column;
                 gap: 0.5rem;
             }
+            .hero-logo img {
+                height: 60px;
+            }
+            .hero-title {
+                font-size: clamp(1.8rem, 6vw, 2.2rem);
+                padding: 0 0.5rem;
+            }
             .hero-info {
                 padding: 0;
             }
             .info-panel {
                 border-radius: 12px;
+                flex-direction: column;
+                min-height: 0;
+            }
+            .info-content {
+                padding: 1.25rem 1.5rem 1.5rem;
+                gap: 0.6rem;
             }
             .info-content h4 {
-                font-size: 1.6rem;
+                font-size: 1.4rem;
             }
             .info-content p {
-                font-size: 1.05rem;
+                font-size: 1rem;
+            }
+            .info-visual {
+                min-height: 180px;
+            }
+            .info-dots {
+                top: 0.5rem;
             }
             .primary-actions {
                 grid-template-columns: 1fr;
+                gap: 1rem;
             }
         }
 
