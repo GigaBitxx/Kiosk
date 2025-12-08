@@ -1,0 +1,60 @@
+body {
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f8f9fa;
+}
+
+#map {
+    width: 100%;
+    height: 100vh;
+    z-index: 1;
+}
+
+.card {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border: none;
+    border-radius: 8px;
+}
+
+.card-title {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.form-control {
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    padding: 8px 12px;
+}
+
+.form-control:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+}
+
+.btn-primary {
+    background-color: #2b4c7e;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 20px;
+}
+
+.btn-primary:hover {
+    background-color: #1f3659;
+}
+
+#plotDetails {
+    min-height: 200px;
+}
+
+/* Kiosk-specific styles */
+@media (max-width: 768px) {
+    /* On small screens, keep the map visible but allow Bootstrap's
+       default column stacking instead of forcing .col-md-4 to be fixed.
+       (Previously this block fixed all .col-md-4 columns to the bottom,
+       which broke forms and layouts on many kiosk pages in mobile view.) */
+    #map {
+        height: 50vh;
+    }
+} 
