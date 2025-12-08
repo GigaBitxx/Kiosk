@@ -13,8 +13,8 @@ $query = "SELECT
             CONCAT(d.first_name, ' ', d.last_name) as name,
             d.date_of_burial as event_date,
             p.section,
-            p.row_number,
-            p.plot_number,
+            p.`row_number` as row_number,
+            p.`plot_number` as plot_number,
             NULL as description
           FROM deceased d 
           JOIN plots p ON d.plot_id = p.plot_id 
@@ -48,8 +48,8 @@ $query = "SELECT
             CONCAT(d.first_name, ' ', d.last_name) as name,
             d.date_of_burial as event_date,
             p.section,
-            p.row_number,
-            p.plot_number,
+            p.`row_number` as row_number,
+            p.`plot_number` as plot_number,
             NULL as description
           FROM deceased d 
           JOIN plots p ON d.plot_id = p.plot_id 
