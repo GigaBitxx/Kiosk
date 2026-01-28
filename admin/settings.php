@@ -620,13 +620,15 @@ if ($row = mysqli_fetch_assoc($res)) {
     <?php include 'includes/sidebar.php'; ?>
     <div class="main">
         <div class="centered-container">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
+            <div class="page-header">
                 <div style="flex: 1;">
                     <a href="profile.php" class="back-button">
                         <span>←</span>
                     </a>
                 </div>
-                <div class="page-title" style="margin: 0; flex: 1; text-align: center;">Settings</div>
+                <div style="flex: 1; text-align: center;">
+                    <h1 class="page-title">Settings</h1>
+                </div>
                 <div class="header-actions" style="flex: 1;">
                 </div>
             </div>

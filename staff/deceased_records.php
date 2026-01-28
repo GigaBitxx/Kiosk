@@ -2907,7 +2907,7 @@ if (mysqli_num_rows($table_check) == 0) {
         <div class="main-content-wrapper">
         <div class="page-header">
             <div>
-            <div class="page-title">Deceased Records</div>
+            <h1 class="page-title">Deceased Records</h1>
                 <p class="page-subtitle">Search, view, and manage deceased records and plot information</p>
             </div>
             <!-- Actions Dropdown Menu: Replaces separate Import Records and Backup & Restore buttons -->

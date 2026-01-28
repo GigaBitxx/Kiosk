@@ -596,14 +596,14 @@ while ($plot = mysqli_fetch_assoc($plots_result)) {
     <div class="layout">
     <?php include 'includes/sidebar.php'; ?>
         <div class="main">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
+            <div class="page-header">
                 <div style="flex: 1;">
                     <a href="plots.php" class="back-button" title="Back to Plots Management">
                         <span>←</span>
                     </a>
                 </div>
                 <div style="flex: 1; text-align: center;">
-                    <div class="page-title" style="margin: 0;">Existing Plots</div>
+                    <h1 class="page-title">Existing Plots</h1>
                 </div>
                 <div style="flex: 1;">
                     <!-- spacer to keep title centered -->

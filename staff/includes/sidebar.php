@@ -465,9 +465,36 @@ $current_page = basename($_SERVER['PHP_SELF']);
         }
     }
     
-    /* Responsive Page Titles */
+    /* Shared Page Title/Header (staff pages) */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 2rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
     .page-title {
+        font-size: 2.25rem;
+        font-weight: 700;
+        color: #000000;
+        letter-spacing: 0;
+        margin: 0 0 32px 0;
         word-wrap: break-word;
+    }
+
+    .page-header .page-title {
+        margin: 0;
+    }
+
+    .page-subtitle {
+        color: #6b7280;
+        font-size: 1rem;
+        margin-top: 0.5rem;
+        margin-bottom: 0;
     }
     
     .page-title.d-flex {
@@ -602,7 +629,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
             <a href="staff_dashboard.php"<?php echo $current_page === 'staff_dashboard.php' ? ' class="active"' : ''; ?>><i class="bx bx-home-alt-2"></i>Home</a>
             <a href="maps.php"<?php echo $current_page === 'maps.php' ? ' class="active"' : ''; ?>><i class="bx bx-map-alt"></i>Maps</a>
             <a href="calendar.php"<?php echo $current_page === 'calendar.php' ? ' class="active"' : ''; ?>><i class="bx bx-calendar"></i>Calendar</a>
-            <a href="deceased_records.php"<?php echo $current_page === 'deceased_records.php' ? ' class="active"' : ''; ?>><i class="bx bx-book-alt"></i>Deceased Records</a>
+            <a href="deceased_records.php"<?php echo in_array($current_page, ['deceased_records.php','add_deceased_record.php','edit_record.php']) ? ' class="active"' : ''; ?>><i class="bx bx-book-alt"></i>Deceased Records</a>
             <a href="plots.php"<?php echo in_array($current_page, ['plots.php','existing_plots.php','add_plots.php','add_plot.php','edit_plot.php','plot_details.php','section_layout.php','sections.php']) ? ' class="active"' : ''; ?>><i class="bx bx-grid-alt"></i>Plots</a>
             <a href="contracts.php"<?php echo in_array($current_page, ['contracts.php','contract_management.php','contract_status_checker.php']) ? ' class="active"' : ''; ?>><i class="bx bx-file"></i>Renewal Tracking</a>
         </nav>

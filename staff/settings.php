@@ -585,14 +585,14 @@ if (isset($_POST['change_password'])) {
     <?php include 'includes/sidebar.php'; ?>
     <div class="main">
         <div class="centered-container">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
+            <div class="page-header">
                 <div style="flex: 1;">
                     <a href="profile.php" class="back-button">
                         <span>←</span>
                     </a>
                 </div>
                 <div style="flex: 1; text-align: center;">
-                    <div class="page-title" style="margin: 0;">Settings</div>
+                    <h1 class="page-title">Settings</h1>
                 </div>
                 <div style="flex: 1;">
                     <!-- Empty div to maintain centering -->

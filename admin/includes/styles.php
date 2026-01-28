@@ -37,11 +37,33 @@
         }
     }
     /* Sidebar styles moved to external CSS file */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 2rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
     .page-title {
-        font-size: 2rem;
-        font-weight: 600;
-        margin-bottom: 32px;
-        letter-spacing: 1px;
+        font-size: 2.25rem;
+        font-weight: 700;
+        color: #000000;
+        letter-spacing: 0;
+        margin: 0 0 32px 0;
+    }
+
+    .page-header .page-title {
+        margin: 0;
+    }
+
+    .page-subtitle {
+        color: #6b7280;
+        font-size: 1rem;
+        margin-top: 0.5rem;
+        margin-bottom: 0;
     }
     
     .page-title.d-flex {

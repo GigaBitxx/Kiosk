@@ -301,9 +301,7 @@ if ($exhumation_enabled) {
 <div class="layout">
     <?php include 'includes/sidebar.php'; ?>
     <div class="main">
-        <div class="page-title">
-            <span>Grave Relocation</span>
-        </div>
+        <h1 class="page-title">Grave Relocation</h1>
 
         <?php if (isset($success_message)): ?>
         <div id="exhumationSuccessMessage" data-message="<?php echo htmlspecialchars($success_message); ?>" style="display: none;"></div>
