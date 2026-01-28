@@ -2201,7 +2201,10 @@ $events = [];
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            z-index: 1;
+            /* Keep calendar controls fully clickable.
+               Some FullCalendar elements (and/or tabs area) can overlap this region;
+               use a higher stacking level so the whole button surface receives clicks. */
+            z-index: 50;
             pointer-events: none;
         }
         .calendar-actions > * {
@@ -2276,7 +2279,9 @@ $events = [];
             overflow: hidden;
         }
         .calendar-add-btn {
-            position: static;
+            position: relative;
+            z-index: 51;
+            pointer-events: auto;
             width: 56px;
             height: 56px;
             border-radius: 50%;
