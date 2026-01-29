@@ -22,8 +22,16 @@ unset($_SESSION['add_plot_duplicate']);
 unset($_SESSION['add_plot_delete_success']);
 
 // Fetch all plot sections for dropdowns / management actions
+// Only include sections that have plots with valid coordinates on the map
 $all_sections = [];
-$sections_query = "SELECT section_id, section_name FROM sections ORDER BY section_name";
+$sections_query = "SELECT DISTINCT s.section_id, s.section_name 
+                   FROM sections s 
+                   INNER JOIN plots p ON s.section_id = p.section_id 
+                   WHERE p.latitude IS NOT NULL 
+                     AND p.longitude IS NOT NULL 
+                     AND p.latitude != 0 
+                     AND p.longitude != 0 
+                   ORDER BY s.section_name";
 if ($sections_result = mysqli_query($conn, $sections_query)) {
     while ($row = mysqli_fetch_assoc($sections_result)) {
         $all_sections[] = $row;
