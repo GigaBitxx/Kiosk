@@ -33,6 +33,7 @@ require_once 'config/database.php';
             flex-direction: column;
             justify-content: center;
             align-items: center;
+            cursor: pointer;
         }
         .welcome-container {
             text-align: center;
@@ -87,25 +88,35 @@ require_once 'config/database.php';
             margin-bottom: 3rem;
             line-height: 1.6;
         }
-        .btn-continue {
-            background: rgba(255, 255, 255, 0.88);
-            color:rgb(0, 0, 0);
+        .touch-indicator {
+            font-size: 32px;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
             font-weight: 600;
-            padding: 20px 52px;
-            border-radius: 42px;
-            border: 1px solid rgba(255, 255, 255, 0.6);
-            font-size: 27px;
-            letter-spacing: 0.08em;
             text-transform: uppercase;
-            transition: all 0.3s ease;
-            box-shadow: 0 10px 24px rgba(0,0,0,0.16);
-            text-decoration: none;
+            letter-spacing: 0.1em;
+            color: rgba(255, 255, 255, 0.95);
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
+            margin-top: 2rem;
+            padding: 20px 40px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50px;
+            backdrop-filter: blur(10px);
+            animation: pulse 2s ease-in-out infinite;
+            pointer-events: none;
         }
-        .btn-continue:hover {
-            background: rgba(220, 234, 224, 0.92);
-            color: #1f2b33;
-            box-shadow: 0 14px 30px rgba(0,0,0,0.2);
-            transform: translateY(-3px);
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 0.9;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.02);
+            }
+        }
+        .btn-continue {
+            display: none;
         }
         .clock {
             position: fixed;
@@ -147,6 +158,10 @@ require_once 'config/database.php';
                 font-size: 20px;
                 padding: 0 1rem;
             }
+            .touch-indicator {
+                font-size: 26px;
+                padding: 16px 32px;
+            }
             .btn-continue {
                 padding: 18px 40px;
                 font-size: 22px;
@@ -174,6 +189,11 @@ require_once 'config/database.php';
                 font-size: 18px;
                 margin-bottom: 2rem;
             }
+            .touch-indicator {
+                font-size: 20px;
+                padding: 14px 28px;
+                margin-top: 1.5rem;
+            }
             .btn-continue {
                 padding: 14px 32px;
                 font-size: 18px;
@@ -194,6 +214,11 @@ require_once 'config/database.php';
             }
             .welcome-message {
                 font-size: 16px;
+            }
+            .touch-indicator {
+                font-size: 18px;
+                padding: 12px 24px;
+                margin-top: 1rem;
             }
             .btn-continue {
                 width: 100%;
@@ -222,6 +247,7 @@ require_once 'config/database.php';
         <p class="welcome-message">
         Where every visit honors memory, faith, and family—find guidance, comfort, and the resting place of those you cherish.
         </p>
+        <div class="touch-indicator">Touch the screen to start</div>
         <a href="main.php" class="btn btn-continue">TOUCH SCREEN TO BEGIN</a>
     </div>
 
@@ -252,6 +278,18 @@ require_once 'config/database.php';
         // Update clock immediately and then every second
         updateClock();
         setInterval(updateClock, 1000);
+
+        // Make entire screen clickable/touchable for kiosk device
+        function navigateToMain() {
+            window.location.href = 'main.php';
+        }
+
+        // Handle both click and touch events
+        document.body.addEventListener('click', navigateToMain);
+        document.body.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            navigateToMain();
+        });
     </script>
     <script src="assets/js/ui-settings.js"></script>
 </body>
