@@ -103,7 +103,8 @@ while ($row = mysqli_fetch_assoc($result)) {
             margin: 0;
             padding: 0;
             height: 100%;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: hidden;
         }
         body {
             font-family: 'Raleway', 'Helvetica Neue', sans-serif;
@@ -112,19 +113,39 @@ while ($row = mysqli_fetch_assoc($result)) {
         .layout {
             display: flex;
             height: 100vh;
+            min-height: 100dvh;
             overflow: hidden;
         }
         .main {
             flex: 1;
             padding: 48px 40px 32px 40px;
             background: #f5f5f5;
-            margin-left: 240px;
+            margin-left: var(--sidebar-width, 220px);
             height: 100vh;
-            overflow: hidden;
+            min-height: 100dvh;
+            overflow: auto;
             box-sizing: border-box;
         }
         .sidebar.collapsed + .main {
-            margin-left: 100px;
+            margin-left: var(--sidebar-collapsed-width, 60px);
+        }
+
+        /* On smaller screens the sidebar becomes off-canvas; allow the page to scroll normally */
+        @media (max-width: 1100px) {
+            html, body {
+                overflow-y: auto;
+            }
+            .layout {
+                height: auto;
+                min-height: 100dvh;
+                overflow: visible;
+            }
+            .main {
+                margin-left: 0;
+                height: auto;
+                min-height: 100dvh;
+                overflow: visible;
+            }
         }
         .calendar-header {
             text-align: center;

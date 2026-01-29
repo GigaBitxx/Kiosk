@@ -67,7 +67,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_feedback'])) {
             flex-direction: column;
             align-items: center;
             justify-content: flex-start;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+        body.keyboard-open {
+            /* Create space so the fixed keyboard doesn't cover inputs/buttons */
+            padding-bottom: 320px;
         }
         .feedback-shell {
             width: min(1400px, 95vw);
@@ -177,11 +182,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_feedback'])) {
             body {
                 padding: 1rem;
             }
+            body.keyboard-open {
+                padding-bottom: 360px;
+            }
             .feedback-card {
                 padding: 1.5rem;
             }
             .keyboard-row {
                 flex-wrap: wrap;
+            }
+        }
+        @media (max-width: 480px) {
+            body.keyboard-open {
+                padding-bottom: 420px;
+            }
+            .virtual-keyboard {
+                bottom: 1rem;
             }
         }
         /* Notification Bubble Styles */
@@ -301,16 +317,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_feedback'])) {
             input.addEventListener('focus', () => {
                 activeInput = input;
                 keyboard.classList.add('active');
+                document.body.classList.add('keyboard-open');
+                setTimeout(() => {
+                    if (activeInput && typeof activeInput.scrollIntoView === 'function') {
+                        activeInput.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                    }
+                }, 50);
             });
             input.addEventListener('click', () => {
                 activeInput = input;
                 keyboard.classList.add('active');
+                document.body.classList.add('keyboard-open');
+                setTimeout(() => {
+                    if (activeInput && typeof activeInput.scrollIntoView === 'function') {
+                        activeInput.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                    }
+                }, 50);
             });
         });
 
         document.addEventListener('click', (event) => {
             if (!keyboard.contains(event.target) && !event.target.closest('.touch-input') && !event.target.closest('.feedback-shell')) {
                 keyboard.classList.remove('active');
+                document.body.classList.remove('keyboard-open');
             }
         });
 
@@ -366,6 +395,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_feedback'])) {
 
             if (key === 'ESC') {
                 keyboard.classList.remove('active');
+                document.body.classList.remove('keyboard-open');
                 return;
             }
 

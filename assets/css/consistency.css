@@ -31,6 +31,11 @@ body {
     line-height: 1.5;
 }
 
+/* Responsive media defaults */
+img, video, canvas {
+    max-width: 100%;
+}
+
 /* Typography Scale */
 h1, .h1 {
     font-size: var(--font-size-3xl);
@@ -119,6 +124,12 @@ input:focus, select:focus, textarea:focus {
     transform: scale(1.02);
 }
 
+@media (max-width: 576px) {
+    input:focus, select:focus, textarea:focus {
+        transform: none;
+    }
+}
+
 /* Card Transitions */
 .card, .form-card, .table-card {
     transition: box-shadow var(--transition-normal), transform var(--transition-normal);
@@ -166,6 +177,12 @@ input:focus, select:focus, textarea:focus {
 .sidebar.collapsed {
     width: 60px;
     min-width: 60px;
+}
+
+/* Tables: allow horizontal scroll when needed */
+.table-card {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* Standardized Button Heights */

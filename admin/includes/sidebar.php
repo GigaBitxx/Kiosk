@@ -10,7 +10,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <style>
     /* Match staff sidebar look & behavior + font style */
     .sidebar {
-        width: 240px;
+        width: 220px;
         background: #fff;
         color: #222;
         border-right: 1px solid #e0e0e0;
@@ -23,7 +23,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
         transition: all 0.2s ease;
         z-index: 100;
     }
-    .sidebar.collapsed { width: 100px; }
+    .sidebar.collapsed { width: 60px; }
 
     .sidebar > div:first-child {
         flex: 1;

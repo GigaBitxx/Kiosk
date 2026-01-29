@@ -10,7 +10,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
     /* Staff Sidebar Styles - Consistent across all staff pages */
     .layout { display: flex; min-height: 100vh; }
     .sidebar {
-        width: 240px;
+        width: 220px;
         background: #fff;
         color: #222;
         border-right: 1px solid #e0e0e0;
@@ -25,7 +25,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
         z-index: 100;
         font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
-    .sidebar.collapsed { width: 100px; }
+    .sidebar.collapsed { width: 60px; }
     .sidebar .logo {
         font-size: 22px;
         font-weight: 700;
@@ -173,11 +173,11 @@ $current_page = basename($_SERVER['PHP_SELF']);
         flex: 1;
         padding: 48px 40px 32px 40px;
         background: #f5f5f5;
-        margin-left: 240px;
+        margin-left: 220px;
         transition: margin-left 0.2s ease, padding 0.3s ease;
     }
     .sidebar.collapsed + .main {
-        margin-left: 100px;
+        margin-left: 60px;
     }
     .sidebar-logo {
         width: 100px;
@@ -301,13 +301,13 @@ $current_page = basename($_SERVER['PHP_SELF']);
     }
     
     .main {
-        width: calc(100% - 240px);
+        width: calc(100% - 220px);
         box-sizing: border-box;
         overflow-x: hidden;
     }
     
     .sidebar.collapsed + .main {
-        width: calc(100% - 100px);
+        width: calc(100% - 60px);
     }
     
     @media (max-width: 1100px) {

@@ -1,4 +1,8 @@
 <style>
+    :root {
+        --sidebar-width: 220px;
+        --sidebar-collapsed-width: 60px;
+    }
     body { 
         margin: 0; 
         padding: 0; 
@@ -16,14 +20,14 @@
         flex: 1;
         padding: 48px 40px 32px 40px;
         background: #f5f5f5;
-        margin-left: 240px;
-        width: calc(100% - 240px);
+        margin-left: var(--sidebar-width);
+        width: calc(100% - var(--sidebar-width));
         box-sizing: border-box;
         overflow-x: hidden;
     }
     .sidebar.collapsed + .main {
-        margin-left: 100px;
-        width: calc(100% - 100px);
+        margin-left: var(--sidebar-collapsed-width);
+        width: calc(100% - var(--sidebar-collapsed-width));
     }
     
     @media (max-width: 1100px) {
