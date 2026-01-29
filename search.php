@@ -181,18 +181,36 @@ if ($search_performed) {
         }
     }
 
-    // Final sort: newest first (by death/burial date), then by name
+    // Final sort: consecutively by section, row number, and plot number (e.g., A1, A2, A3, B1, B2)
     if (!empty($matches)) {
         usort($matches, function ($a, $b) {
-            $dateA = $a['date_of_death'] ?? $a['burial_date'] ?? '';
-            $dateB = $b['date_of_death'] ?? $b['burial_date'] ?? '';
-
-            if ($dateA === $dateB) {
-                return strcasecmp($a['full_name'], $b['full_name'] ?? '');
+            // First sort by section name/code
+            $sectionA = strtoupper($a['section_name'] ?? $a['section_code'] ?? '');
+            $sectionB = strtoupper($b['section_name'] ?? $b['section_code'] ?? '');
+            
+            if ($sectionA !== $sectionB) {
+                return strcmp($sectionA, $sectionB);
             }
-
-            // Newest (largest date string) first
-            return strcmp($dateB, $dateA);
+            
+            // Then sort by row number (numeric)
+            $rowA = isset($a['row_number']) && is_numeric($a['row_number']) ? (int)$a['row_number'] : 0;
+            $rowB = isset($b['row_number']) && is_numeric($b['row_number']) ? (int)$b['row_number'] : 0;
+            
+            if ($rowA !== $rowB) {
+                return $rowA <=> $rowB;
+            }
+            
+            // Finally sort by plot number (numeric if possible, otherwise string)
+            $plotA = $a['plot_number'] ?? '';
+            $plotB = $b['plot_number'] ?? '';
+            
+            // Try numeric comparison first
+            if (is_numeric($plotA) && is_numeric($plotB)) {
+                return ((int)$plotA) <=> ((int)$plotB);
+            }
+            
+            // Fallback to string comparison
+            return strcmp($plotA, $plotB);
         });
 
         $search_results = $matches;
