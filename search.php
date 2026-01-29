@@ -1,6 +1,26 @@
 <?php
 require_once 'config/database.php';
 
+/**
+ * Convert row number to letter (1 = A, 2 = B, etc.)
+ */
+function rowNumberToLetter($rowNumber) {
+    if (!is_numeric($rowNumber) || empty($rowNumber)) {
+        return '';
+    }
+    $rowNumber = (int)$rowNumber;
+    if ($rowNumber < 1) {
+        return '';
+    }
+    $letter = '';
+    while ($rowNumber > 0) {
+        $remainder = ($rowNumber - 1) % 26;
+        $letter = chr(65 + $remainder) . $letter;
+        $rowNumber = intval(($rowNumber - 1) / 26);
+    }
+    return $letter;
+}
+
 $search_results = [];
 $filter = isset($_GET['filter']) ? $_GET['filter'] : 'all';
 $search_input = isset($_GET['q']) ? trim($_GET['q']) : '';
@@ -512,9 +532,18 @@ if ($search_performed) {
                                                 $sectionLabel = $result['section_name'] 
                                                     ?? $result['section_code'] 
                                                     ?? ($result['section'] ?? '');
+                                                
+                                                // Convert row number to letter and format plot location
+                                                $rowLetter = rowNumberToLetter($result['row_number'] ?? '');
+                                                $plotNumber = $result['plot_number'] ?? '';
+                                                $locationCode = $rowLetter . $plotNumber;
+                                                
+                                                // Format as "SECTION - LOCATIONCODE" (e.g., "APOLLO - A1")
+                                                $plotLocation = !empty($sectionLabel) && !empty($locationCode) 
+                                                    ? htmlspecialchars($sectionLabel) . ' - ' . htmlspecialchars($locationCode)
+                                                    : (!empty($sectionLabel) ? htmlspecialchars($sectionLabel) : '—');
                                             ?>
-                                            <strong>Plot Location:</strong> 
-                                            <?php echo htmlspecialchars(trim($sectionLabel . '-' . $result['row_number'] . '-' . $result['plot_number'], '-')); ?><br>
+                                            <strong>Plot Location:</strong> <?php echo $plotLocation; ?><br>
                                             <strong>Date of Death:</strong> <?php echo htmlspecialchars($result['date_of_death'] ?? '—'); ?><br>
                                             <strong>Date of Burial:</strong> <?php echo htmlspecialchars($result['burial_date'] ?? '—'); ?>
                                         </p>
