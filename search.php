@@ -288,6 +288,26 @@ if ($search_performed) {
         .section-select-wrapper {
             margin-top: 1rem;
         }
+        #section-select {
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        #section-select[size] {
+            border-radius: 8px;
+            padding: 4px;
+        }
+        #section-select[size] option {
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin: 2px 0;
+        }
+        #section-select[size] option:hover {
+            background-color: #f0f0f0;
+        }
+        #section-select[size] option:checked {
+            background-color: var(--accent);
+            color: white;
+        }
         /* Form input consistency */
         .form-control, .form-select {
             font-size: 14px;
@@ -454,7 +474,7 @@ if ($search_performed) {
                 <div class="section-select-wrapper" id="section-select-wrapper"
                      style="display: <?php echo $active_tab === 'section' ? 'block' : 'none'; ?>;">
                     <label for="section-select" class="form-label mb-1">Choose Section</label>
-                    <select id="section-select" class="form-select">
+                    <select id="section-select" class="form-select" size="4">
                         <?php foreach ($sections as $section): ?>
                             <option value="<?php echo $section['section_id']; ?>"
                                 <?php echo ($filter == $section['section_id']) ? 'selected' : ''; ?>>
