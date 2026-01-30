@@ -226,7 +226,7 @@ if ($result) {
         .search-container {
             flex: 0 1 auto;
             min-width: 0;
-            max-width: 320px;
+            max-width: 432px;
             display: flex;
             gap: 8px;
         }
@@ -234,7 +234,7 @@ if ($result) {
         .search-container input {
             flex: 1 1 auto;
             min-width: 0;
-            max-width: 200px;
+            max-width: 270px;
             font-size: 0.9rem;
             padding: 6px 10px;
         }
@@ -242,7 +242,7 @@ if ($result) {
         .search-container .btn {
             padding: 6px 16px;
             font-size: 0.9rem;
-            min-width: 110px;
+            min-width: 149px;
             flex-shrink: 0;
         }
 
@@ -1311,7 +1311,7 @@ if ($result) {
     <div class="controls">
         <button type="button" class="btn btn-secondary" onclick="clearSearch()" title="Clear search">Clear</button>
         <div class="search-container">
-            <input type="text" id="searchDeceased" class="form-control" placeholder="Search Plot (e.g., ARIES-E-1) or Deceased Name" onkeypress="if(event.key === 'Enter') { event.preventDefault(); searchDeceased(); }">
+            <input type="text" id="searchDeceased" class="form-control" placeholder="Search Plot (ARIES-1-1) or Deceased Name" onkeypress="if(event.key === 'Enter') { event.preventDefault(); searchDeceased(); }">
             <button type="button" class="btn btn-primary" onclick="searchDeceased()">Search</button>
         </div>
         <div class="control-buttons">
@@ -3418,10 +3418,32 @@ if ($result) {
         }
 
         function showSuggestionPanelForPlotId(plotId, titleText) {
-            if (!plotId) return;
-            const marker = plotMarkersById[plotId];
-            if (!marker) return;
-            showSuggestionPanelForMarker(marker, titleText);
+            if (!plotId) return false;
+            const marker = plotMarkersById[plotId] || plotMarkersById[String(plotId)] || plotMarkersById[Number(plotId)];
+            if (marker) {
+                showSuggestionPanelForMarker(marker, titleText);
+                return true;
+            }
+            return false;
+        }
+
+        // Show plot search result: suggestion panel if marker exists, else centered modal (so something always shows)
+        function showPlotSearchResult(lat, lng, plotId, plotLabel, sectionName) {
+            if (showSuggestionPanelForPlotId(plotId, plotLabel)) return;
+            if (!searchResultModal || !searchResultContent) return;
+            const section = sectionName || plotLabel;
+            const dirLabel = String(plotLabel).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            const plotIdJs = (plotId == null || plotId === '') ? 'null' : (typeof plotId === 'string' ? `'${String(plotId).replace(/'/g, "\\'")}'` : Number(plotId));
+            const html = `
+                <div class="search-result-plot-only">
+                    <div style="font-weight:600;font-size:1.1rem;margin-bottom:8px;">${plotLabel}</div>
+                    <div style="font-size:0.9rem;color:#64748b;margin-bottom:12px;">${section}</div>
+                    <button type="button" class="btn btn-primary" onclick="startWayfinding(${lat}, ${lng}, '${dirLabel}', ${plotIdJs}); if(typeof closeSearchResultModal === 'function') closeSearchResultModal();">Show Directions</button>
+                </div>
+            `;
+            searchResultContent.innerHTML = html;
+            searchResultModal.classList.add('active');
+            focusSuggestionPanelForMobile();
         }
 
         function startWayfinding(lat, lng, destinationName, plotId) {
@@ -3484,7 +3506,17 @@ if ($result) {
                 return { type: 'landmark', data: landmarkMatch };
             }
             
-            // Check if it's a section name
+            // Check if it looks like a plot identifier (e.g. ARIES-E-1, APOLLO-A10) BEFORE section,
+            // so "ARIES-E-1" goes to plot search instead of matching section "ARIES"
+            const plotPattern = /^[A-Z0-9\-\s]+$/;
+            if (plotPattern.test(term) && (/\d/.test(term) || term.includes('-') || term.includes('BLK'))) {
+                if (term.length <= 3 && /^[A-Z]+$/.test(term)) {
+                    return { type: 'deceased', data: null };
+                }
+                return { type: 'plot', data: null };
+            }
+            
+            // Check if it's a section name (exact or broad match; plot-like terms already handled above)
             const sectionMatch = Object.keys(sections).find(sectionName => 
                 sectionName.toUpperCase() === term || 
                 sectionName.toUpperCase().includes(term) ||
@@ -3494,19 +3526,16 @@ if ($result) {
                 return { type: 'section', data: { name: sectionMatch, ...sections[sectionMatch] } };
             }
             
-            // Check if it looks like a plot number (contains numbers and possibly letters/dashes)
-            // More strict: should have numbers and match plot number patterns
-            const plotPattern = /^[A-Z0-9\-\s]+$/;
-            if (plotPattern.test(term) && (/\d/.test(term) || term.includes('-') || term.includes('BLK'))) {
-                // Additional check: if it's a short term (1-3 chars) and contains only letters, it's likely a name
-                if (term.length <= 3 && /^[A-Z]+$/.test(term)) {
-                    return { type: 'deceased', data: null };
-                }
-                return { type: 'plot', data: null };
-            }
-            
             // Default to deceased name search
             return { type: 'deceased', data: null };
+        }
+
+        // Returns true if the term looks like a plot identifier (so we can try plot search as fallback)
+        function looksLikePlot(searchTerm) {
+            const term = searchTerm.trim().toUpperCase();
+            if (term.length <= 3 && /^[A-Z]+$/.test(term)) return false;
+            const plotPattern = /^[A-Z0-9\-\s]+$/;
+            return plotPattern.test(term) && (/\d/.test(term) || term.includes('-') || term.includes('BLK'));
         }
 
         // Helper function to format date from database format (YYYY-MM-DD) to mm/dd/yyyy
@@ -3663,11 +3692,10 @@ if ($result) {
                         const zoomLevel = getResponsiveZoom(20, 19);
                         map.flyTo([lat, lng], zoomLevel, { duration: 0.8 });
                         
-                        // Show details in the side suggestion panel instead of opening a popup
+                        // Show result: suggestion panel if marker exists, else centered modal
                         setTimeout(() => {
-                            showSuggestionPanelForPlotId(data.plot.plot_id, plotLabel);
                             map.closePopup();
-                            focusSuggestionPanelForMobile();
+                            showPlotSearchResult(lat, lng, data.plot.plot_id, plotLabel, data.plot.section_name || data.plot.section_code);
                         }, 800);
 
                         return Promise.reject('FOUND');
@@ -3927,8 +3955,35 @@ if ($result) {
 
                         return;
                     }
+
+                    // No deceased results: if term looks like a plot, try plot search
+                    if (results.length === 0 && looksLikePlot(searchTerm)) {
+                        return fetch(`api/search_plot.php?plot=${encodeURIComponent(searchTerm)}`)
+                            .then(response => response.ok ? response.json() : null)
+                            .then(plotData => {
+                                if (plotData && plotData.plot && plotData.plot.plot_id) {
+                                    const lat = parseFloat(plotData.plot.latitude);
+                                    const lng = parseFloat(plotData.plot.longitude);
+                                    if (isNaN(lat) || isNaN(lng)) {
+                                        showNotification('Error: Invalid coordinates for this plot. Please contact administrator.', 'error');
+                                        return;
+                                    }
+                                    const plotLabel = plotData.plot.section_code ?
+                                        `${plotData.plot.section_code}-${plotData.plot.plot_number}` :
+                                        plotData.plot.plot_number;
+                                    const zoomLevel = getResponsiveZoom(20, 19);
+                                    map.flyTo([lat, lng], zoomLevel, { duration: 0.8 });
+                                    setTimeout(() => {
+                                        map.closePopup();
+                                        showPlotSearchResult(lat, lng, plotData.plot.plot_id, plotLabel, plotData.plot.section_name || plotData.plot.section_code);
+                                    }, 800);
+                                    return;
+                                }
+                                showNotification('No matching plot, deceased, section, or landmark found. Please try again.', 'error');
+                            });
+                    }
                     
-                        // Fallback: single match behaviour (backwards compatible) for legacy
+                    // Fallback: single match behaviour (backwards compatible) for legacy
                     // responses that only expose `plot` and do not provide `results`.
                     if (!Array.isArray(data.results) && data && data.plot && data.plot.plot_id) {
                         const lat = parseFloat(data.plot.latitude);
@@ -3956,11 +4011,13 @@ if ($result) {
                         const zoomLevel = getResponsiveZoom(19, 18); // Closer zoom
                         map.flyTo([lat, lng], zoomLevel, { duration: 0.8 });
                         
-                        // Show details in the side suggestion panel instead of opening a popup
+                        // Show result: suggestion panel (deceased popup) if marker exists, else centered modal
                         setTimeout(() => {
-                            const title = deceasedName || plotLabel || 'Search Result';
-                            showSuggestionPanelForPlotId(data.plot.plot_id, title);
                             map.closePopup();
+                            const title = deceasedName || plotLabel || 'Search Result';
+                            if (!showSuggestionPanelForPlotId(data.plot.plot_id, title)) {
+                                showPlotSearchResult(lat, lng, data.plot.plot_id, title, data.plot.section_name || data.plot.section_code || plotLabel);
+                            }
                             focusSuggestionPanelForMobile();
                         }, 800);
                     } else {

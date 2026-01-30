@@ -47,12 +47,13 @@ try {
         exit;
     }
 
-    // Fallback: flexible partial matching so fragments like "E-1" or "A1" still resolve
+    // Fallback: flexible partial matching so fragments like "E-1", "A1", or "ARIES-E-1" resolve
     $query = "SELECT p.*, s.section_name, s.section_code 
               FROM plots p 
               JOIN sections s ON p.section_id = s.section_id 
               WHERE 
                     UPPER(p.plot_number) LIKE '%$searchUpper%'
+                 OR UPPER(CONCAT(s.section_code, '-', p.plot_number)) LIKE '%$searchUpper%'
                  OR UPPER(CONCAT(s.section_name, '-', p.row_number, '-', p.plot_number)) LIKE '%$searchUpper%'
                  OR UPPER(CONCAT(s.section_name, ' - ', p.row_number, ' - ', p.plot_number)) LIKE '%$searchUpper%'
                  OR UPPER(CONCAT(s.section_code, '-', p.row_number, '-', p.plot_number)) LIKE '%$searchUpper%'
