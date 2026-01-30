@@ -1414,37 +1414,6 @@ if ($result) {
         map.setMinZoom(MIN_TILE_ZOOM);
         map.setMaxZoom(MAX_TILE_ZOOM);
 
-        // Constrain zoom-out/pan so the view stays focused on the cemetery area.
-        // If a saved cemetery boundary exists, we'll tighten these constraints further once loaded.
-        let cemeteryBounds = null;
-        function applyCemeteryViewConstraints(bounds) {
-            if (!bounds) return;
-
-            // Slight padding so the boundary isn't glued to the edge of the screen.
-            const padded = bounds.pad(0.06);
-
-            // Prevent panning outside the cemetery area.
-            map.setMaxBounds(padded);
-            map.options.maxBoundsViscosity = 1.0;
-
-            // Prevent zooming out beyond the "whole cemetery fits" overview.
-            // Keep it within our tile-safe minimum as a hard floor.
-            const fitZoom = map.getBoundsZoom(padded, false);
-            const dynamicMinZoom = Math.max(MIN_TILE_ZOOM, fitZoom);
-            map.setMinZoom(dynamicMinZoom);
-
-            // If the user is already zoomed out too far, gently bring them back in.
-            if (map.getZoom() < dynamicMinZoom) {
-                map.setZoom(dynamicMinZoom);
-            }
-        }
-
-        // Fallback bounds around the map center (used when no boundary is saved yet).
-        // This avoids zooming out to the whole world.
-        applyCemeteryViewConstraints(
-            L.latLngBounds([14.2635, 120.8637], [14.2669, 120.8666])
-        );
-        
         // Improve touch handling for mobile zoom
         if (isMobileDevice) {
             // Enable double-tap zoom but with better control
@@ -1466,11 +1435,6 @@ if ($result) {
                 if (isMobileNow !== isMobileDevice && currentZoom > 20) {
                     // If switched to mobile and zoomed in too much, adjust slightly
                     map.setZoom(Math.min(currentZoom, 20));
-                }
-
-                // Recompute minZoom based on cemetery bounds when viewport size changes.
-                if (cemeteryBounds) {
-                    applyCemeteryViewConstraints(cemeteryBounds);
                 }
             }, 250);
         });
@@ -2074,10 +2038,6 @@ if ($result) {
                 fillOpacity: 0.3,
                 interactive: false // No interaction for kiosk interface
             }).addTo(map);
-
-            // Update constraints based on the actual saved boundary.
-            cemeteryBounds = cemeteryBoundary.getBounds();
-            applyCemeteryViewConstraints(cemeteryBounds);
         }
         
         // Initialize boundary display (no drawing controls for kiosk interface)
