@@ -195,8 +195,8 @@ if ($result) {
             left: 50%;
             transform: translateX(-50%);
             margin: 0;
-            width: min(800px, calc(100vw - 120px));
-            max-width: 800px;
+            width: fit-content;
+            max-width: min(800px, calc(100vw - 120px));
             min-width: 0;
             background: rgba(255, 255, 255, 0.95);
             padding: 10px 12px;
@@ -224,9 +224,9 @@ if ($result) {
         }
 
         .search-container {
-            flex: 1 1 auto;
+            flex: 0 1 auto;
             min-width: 0;
-            max-width: 520px;
+            max-width: 320px;
             display: flex;
             gap: 8px;
         }
@@ -234,6 +234,7 @@ if ($result) {
         .search-container input {
             flex: 1 1 auto;
             min-width: 0;
+            max-width: 200px;
             font-size: 0.9rem;
             padding: 6px 10px;
         }
@@ -280,7 +281,7 @@ if ($result) {
             .controls {
                 left: 50%;
                 transform: translateX(-50%);
-                width: min(800px, calc(100vw - 200px));
+                width: fit-content;
                 max-width: min(800px, calc(100vw - 200px));
                 min-width: 0;
                 margin-left: 0;
@@ -291,7 +292,7 @@ if ($result) {
             .controls {
                 left: 50%;
                 transform: translateX(-50%);
-                width: min(800px, calc(100vw - 140px));
+                width: fit-content;
                 max-width: min(800px, calc(100vw - 140px));
                 min-width: 0;
             }
@@ -1308,6 +1309,7 @@ if ($result) {
     </a>
 
     <div class="controls">
+        <button type="button" class="btn btn-secondary" onclick="clearSearch()" title="Clear search">Clear</button>
         <div class="search-container">
             <input type="text" id="searchDeceased" class="form-control" placeholder="Search Plot (e.g., ARIES-E-1) or Deceased Name" onkeypress="if(event.key === 'Enter') { event.preventDefault(); searchDeceased(); }">
             <button type="button" class="btn btn-primary" onclick="searchDeceased()">Search</button>
@@ -3224,6 +3226,14 @@ if ($result) {
                 searchResultModal.classList.remove('active');
                 searchResultContent.innerHTML = '';
             }
+        }
+
+        function clearSearch() {
+            const searchInput = document.getElementById('searchDeceased');
+            if (searchInput) searchInput.value = '';
+            closeSearchResultModal();
+            closeSearchSuggestionPanel();
+            if (map && map.closePopup) map.closePopup();
         }
 
         function closeSearchSuggestionPanel() {
