@@ -3701,6 +3701,79 @@ if ($result) {
                         return Promise.reject('FOUND');
                     }
                     
+                    // Multiple plots (incomplete search e.g. "Aries-1"): show list in search details
+                    if (data && data.plots && Array.isArray(data.plots) && data.plots.length > 0) {
+                        const plotResults = data.plots.filter(p => p.plot_id && p.latitude != null && p.longitude != null && parseFloat(p.latitude) && parseFloat(p.longitude));
+                        if (plotResults.length === 0) {
+                            showNotification('Matching plots have no coordinates. Please contact administrator.', 'error');
+                            return Promise.reject('NOT_FOUND');
+                        }
+                        const label = plotResults.length === 1 ? 'plot' : 'plots';
+                        if (searchSuggestionTitle) searchSuggestionTitle.textContent = `${plotResults.length} ${label} for "${searchTerm}"`;
+                        const itemsHtml = plotResults.map((p) => {
+                            const plotLabel = p.section_code ? `${p.section_code}-${p.plot_number || ''}`.replace(/-$/, '') : (p.plot_number || '');
+                            const sectionName = p.section_name || p.section_code || '—';
+                            const rowNumber = p.row_number ?? '—';
+                            const plotNumber = p.plot_number ?? '—';
+                            const lat = parseFloat(p.latitude);
+                            const lng = parseFloat(p.longitude);
+                            return `
+                                <div class="search-suggestion-item plot-result-item" data-plot-id="${p.plot_id}" data-lat="${lat}" data-lng="${lng}" data-plot-label="${plotLabel.replace(/"/g, '&quot;')}" data-section="${sectionName.replace(/"/g, '&quot;')}" style="border-radius:12px;border:1px solid #e2e8f0;padding:10px 12px;margin-bottom:8px;cursor:pointer;background:#f9fafb;">
+                                    <div style="display:flex;flex-direction:column;gap:6px;">
+                                        <div style="font-weight:600;color:#0f172a;">${plotLabel}</div>
+                                        <div style="font-size:0.85rem;color:#475569;">Section: <strong>${sectionName}</strong></div>
+                                        <div style="font-size:0.85rem;color:#475569;">Row: <strong>${rowNumber}</strong> &nbsp;&bull;&nbsp; Plot #: <strong>${plotNumber}</strong></div>
+                                        <div>
+                                            <button type="button" class="btn btn-primary btn-sm search-suggestion-wayfinding">Show Directions</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                        searchSuggestionList.innerHTML = itemsHtml;
+                        searchSuggestionPanel.classList.remove('minimized');
+                        searchSuggestionPanel.classList.add('active');
+                        focusSuggestionPanelForMobile();
+                        // Click item: fly to plot and show details
+                        searchSuggestionList.querySelectorAll('.plot-result-item').forEach((el) => {
+                            const plotId = el.getAttribute('data-plot-id');
+                            const lat = parseFloat(el.getAttribute('data-lat'));
+                            const lng = parseFloat(el.getAttribute('data-lng'));
+                            const plotLabel = el.getAttribute('data-plot-label') || '';
+                            const sectionName = el.getAttribute('data-section') || plotLabel;
+                            el.addEventListener('click', (e) => {
+                                if (e.target.closest('.search-suggestion-wayfinding')) return;
+                                if (isNaN(lat) || isNaN(lng)) return;
+                                const zoomLevel = getResponsiveZoom(20, 19);
+                                map.flyTo([lat, lng], zoomLevel, { duration: 0.8 });
+                                setTimeout(() => {
+                                    map.closePopup();
+                                    showPlotSearchResult(lat, lng, plotId, plotLabel, sectionName);
+                                }, 800);
+                            });
+                            const btn = el.querySelector('.search-suggestion-wayfinding');
+                            if (btn) btn.addEventListener('click', (ev) => {
+                                ev.stopPropagation();
+                                if (isNaN(lat) || isNaN(lng)) return;
+                                startWayfinding(lat, lng, plotLabel, plotId || null);
+                            });
+                        });
+                        // Fit map to show all matching plots
+                        const bounds = L.latLngBounds();
+                        plotResults.forEach(p => {
+                            const lat = parseFloat(p.latitude);
+                            const lng = parseFloat(p.longitude);
+                            if (!isNaN(lat) && !isNaN(lng)) bounds.extend([lat, lng]);
+                        });
+                        if (bounds.isValid()) {
+                            const isMobile = window.innerWidth <= 768;
+                            const padding = isMobile ? [60, 20] : [40, 40];
+                            const maxZoom = getResponsiveZoom(19, 18);
+                            map.fitBounds(bounds, { padding: padding, maxZoom: maxZoom });
+                        }
+                        return Promise.reject('FOUND');
+                    }
+                    
                     // If plot search didn't find anything, try searching by deceased name
                     console.log('Plot search found nothing, trying deceased search...');
                     return fetch(`api/search_deceased.php?name=${encodeURIComponent(searchTerm)}`);
