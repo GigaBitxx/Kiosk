@@ -2220,6 +2220,8 @@ if ($result) {
                 `;
                 
                 item.addEventListener('click', () => {
+                    // Reset/close search so focus is on the section
+                    clearSearch();
                     // Zoom to section
                     const bounds = L.latLngBounds(
                         plots.map(p => [parseFloat(p.latitude), parseFloat(p.longitude)])
