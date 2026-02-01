@@ -1142,11 +1142,11 @@ $timeline_type_icons = [
             flex: 1;
             padding: 48px 40px 32px 40px;
             background: #f5f5f5;
-            margin-left: 240px;
-            transition: margin-left 0.2s ease, padding 0.3s ease;
+            margin-left: 220px;
+            transition: margin-left 0.2s ease, width 0.2s ease, padding 0.3s ease;
         }
         .sidebar.collapsed + .main {
-            margin-left: 100px;
+            margin-left: 60px;
         }
         
         /* Responsive Dashboard Container */

@@ -11,30 +11,32 @@ $current_page = basename($_SERVER['PHP_SELF']);
     .layout { display: flex; min-height: 100vh; }
     .sidebar {
         width: 220px;
+        height: 100vh;
+        max-height: 100vh;
         background: #fff;
         color: #222;
         border-right: 1px solid #e0e0e0;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        min-height: 100vh;
         position: fixed !important;
         left: 0 !important;
         top: 0 !important;
         transition: transform 0.3s ease, width 0.2s ease;
         z-index: 100;
         font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        overflow: hidden;
     }
     .sidebar.collapsed { width: 60px; }
     .sidebar .logo {
-        font-size: 22px;
+        font-size: 18px;
         font-weight: 700;
         padding: 0;
-        letter-spacing: 1px;
+        letter-spacing: 0.5px;
         text-align: center;
         color: #222;
         transition: all 0.2s ease;
-        line-height: 1.3;
+        line-height: 1.25;
     }
     .sidebar.collapsed .logo { 
         font-size: 0; 
@@ -42,7 +44,16 @@ $current_page = basename($_SERVER['PHP_SELF']);
         margin: 0;
         height: 0;
     }
-    .sidebar.collapsed > div:first-child > div:first-child {
+    .sidebar-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px 20px 16px 20px;
+        flex-shrink: 0;
+        transition: all 0.2s ease;
+    }
+    .sidebar.collapsed .sidebar-header {
         padding: 24px 12px 16px 12px;
     }
     .sidebar.collapsed .sidebar-logo {
@@ -50,29 +61,31 @@ $current_page = basename($_SERVER['PHP_SELF']);
     }
     .sidebar > div:first-child {
         flex: 1;
+        min-height: 0;
         display: flex;
         flex-direction: column;
         position: relative !important;
-        overflow: visible !important;
+        overflow: hidden;
     }
     .sidebar nav {
         display: flex;
         flex-direction: column;
-        gap: 10px;
-        margin-top: 24px;
+        gap: 8px;
+        margin-top: 16px;
         flex: 1;
-        /* Extra bottom padding so last item never sits under the profile tab */
-        padding-bottom: 72px;
+        min-height: 0;
+        padding-bottom: 12px;
         transition: all 0.2s ease;
     }
     .sidebar a {
         color: #222;
         text-decoration: none;
-        padding: 12px 24px;
+        padding: 10px 20px;
         display: flex;
         align-items: center;
+        flex-shrink: 0;
         border-left: 6px solid transparent;
-        font-size: 16px;
+        font-size: 15px;
         font-weight: 500;
         transition: all 0.2s ease;
         border-radius: 0 20px 20px 0;
@@ -107,9 +120,10 @@ $current_page = basename($_SERVER['PHP_SELF']);
         display: none;
     }
     .sidebar .collapse-btn {
-        position: absolute !important;
+        position: fixed !important;
         top: 16px !important;
-        right: -18px !important;
+        left: 202px !important;
+        right: auto !important;
         background: #fff !important;
         border: 2px solid #e0e0e0 !important;
         color: #222 !important;
@@ -120,18 +134,20 @@ $current_page = basename($_SERVER['PHP_SELF']);
         display: flex !important;
         align-items: center;
         justify-content: center;
-        z-index: 101 !important;
-        transition: all 0.2s ease;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+        z-index: 102 !important;
+        transition: left 0.2s ease, box-shadow 0.2s ease;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.12) !important;
+    }
+    .sidebar.collapsed .collapse-btn {
+        left: 42px !important;
     }
     .sidebar .collapse-btn:hover {
         background: #f5f5f5;
         border-color: #ccc;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
     }
     .sidebar .sidebar-bottom {
-        position: absolute !important;
-        left: 0 !important;
-        bottom: 0 !important;
+        flex-shrink: 0;
         width: 100%;
         padding: 10px 0;
         border-top: 1px solid #e0e0e0;
@@ -159,32 +175,51 @@ $current_page = basename($_SERVER['PHP_SELF']);
         width: 100%;
         padding: 8px 0;
         text-decoration: none;
-        border: none;
+        border-left: 6px solid transparent;
+        border-radius: 0 20px 20px 0;
         background: transparent;
+        position: relative;
     }
     .sidebar .sidebar-bottom .profile-icon:hover {
         color: #000;
         background: transparent;
     }
     .sidebar .sidebar-bottom .profile-icon.active {
-        color: #000;
+        background: #f5f5f5;
+        color: #111;
+        border-left: 6px solid transparent;
+    }
+    .sidebar .sidebar-bottom .profile-icon.active::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 6px;
+        height: 36px;
+        background: #111;
+        border-radius: 12px 0 0 12px;
+        transition: all 0.2s ease;
+    }
+    .sidebar.collapsed .sidebar-bottom .profile-icon.active::before {
+        display: none;
     }
     .main {
         flex: 1;
         padding: 48px 40px 32px 40px;
         background: #f5f5f5;
         margin-left: 220px;
-        transition: margin-left 0.2s ease, padding 0.3s ease;
+        transition: margin-left 0.2s ease, width 0.2s ease, padding 0.3s ease;
     }
     .sidebar.collapsed + .main {
         margin-left: 60px;
     }
     .sidebar-logo {
-        width: 100px;
+        width: 90px;
         height: auto;
         object-fit: contain;
         display: block;
-        margin-bottom: 16px;
+        margin-bottom: 12px;
     }
     .sidebar.collapsed .sidebar-logo {
         width: 50px;
@@ -205,13 +240,15 @@ $current_page = basename($_SERVER['PHP_SELF']);
         margin-right: 10px;
     }
     
-    /* Mobile Sidebar Responsiveness */
+    /* Mobile Sidebar Responsiveness - same breakpoint (1100px) for full screen vs default consistency */
     @media (max-width: 1100px) {
         .sidebar {
             transform: translateX(-100%);
             transition: transform 0.3s ease;
         }
         .sidebar.mobile-open {
+            width: 220px;
+            max-width: 85vw;
             transform: translateX(0);
             box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
         }
@@ -251,7 +288,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
             background: #f5f5f5;
         }
         .sidebar .collapse-btn {
-            display: none;
+            display: none !important;
         }
         .main {
             margin-left: 0 !important;
@@ -591,8 +628,8 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
 <div class="sidebar" id="sidebar">
     <div>
-        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 24px 24px 24px;">
-            <img src="../assets/images/tmmp-logo.png" class="sidebar-logo" style="margin-bottom: 16px;" alt="Trece Martires Memorial Park">
+        <div class="sidebar-header">
+            <img src="../assets/images/tmmp-logo.png" alt="Trece Martires Memorial Park" class="sidebar-logo">
             <div class="logo">Trece Martires<br>Memorial Park</div>
         </div>
         <button class="collapse-btn" type="button" onclick="document.getElementById('sidebar').classList.toggle('collapsed')" aria-label="Toggle sidebar">&#9776;</button>
@@ -622,6 +659,12 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     if (!sidebar.contains(e.target) && !mobileBtn.contains(e.target) && overlay.classList.contains('show')) {
                         closeMobileSidebar();
                     }
+                }
+            });
+            // On resize: close mobile menu when crossing above 1100px so full screen vs default stays consistent
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 1100) {
+                    closeMobileSidebar();
                 }
             });
         </script>

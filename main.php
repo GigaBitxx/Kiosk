@@ -19,12 +19,19 @@ require_once 'config/database.php';
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link rel="stylesheet" href="assets/css/style.css">
     <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+        html {
+            overflow-x: hidden;
+        }
         body {
             background: #f4f6f9;
             min-height: 100vh;
             font-family: 'Raleway', 'Helvetica Neue', sans-serif;
             margin: 0;
             overflow-x: hidden;
+            max-width: 100vw;
         }
         .home-wrapper {
             min-height: 100vh;
@@ -276,6 +283,39 @@ require_once 'config/database.php';
             transform: translateY(-2px);
         }
 
+        /* PC and large screens: use space, avoid tiny content */
+        @media (min-width: 1400px) {
+            .home-wrapper {
+                padding: 2.5rem 0 3rem;
+            }
+            .hero-title {
+                font-size: clamp(3rem, 4vw, 4rem);
+            }
+            .hero-info {
+                max-width: 1320px;
+            }
+            .actions-section {
+                max-width: 1320px;
+            }
+            .action-card {
+                min-height: 380px;
+                padding: 3rem 2.5rem;
+            }
+            .action-title {
+                font-size: 2rem;
+            }
+            .action-text {
+                font-size: 1.25rem;
+            }
+        }
+        @media (min-width: 1920px) {
+            .hero-info {
+                max-width: 1400px;
+            }
+            .actions-section {
+                max-width: 1400px;
+            }
+        }
         @media (max-width: 1024px) {
             .home-wrapper {
                 padding: 1.5rem 0 2rem;

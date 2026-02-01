@@ -135,7 +135,7 @@ if (isset($_SESSION['add_record_error'])) {
             margin-left: 240px;
         }
         .sidebar.collapsed + .main {
-            margin-left: 100px;
+            margin-left: 60px;
         }
         
         /* Responsive Design - Standard Breakpoints */

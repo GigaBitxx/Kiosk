@@ -149,6 +149,53 @@ require_once 'config/database.php';
             font-weight: 600;
             letter-spacing: 0.05em;
         }
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+        html {
+            overflow-x: hidden;
+        }
+        body {
+            max-width: 100vw;
+        }
+        /* PC and large screens: scale up so content doesn't look tiny */
+        @media (min-width: 1440px) {
+            .welcome-title {
+                font-size: 64px;
+                gap: 1.25rem;
+            }
+            .welcome-title img {
+                height: 80px;
+            }
+            .welcome-message {
+                font-size: 26px;
+                margin-bottom: 3.5rem;
+            }
+            .touch-indicator {
+                font-size: 28px;
+                padding: 22px 44px;
+            }
+            .clock {
+                font-size: 20px;
+                padding: 14px 24px;
+                min-width: 200px;
+            }
+        }
+        @media (min-width: 1920px) {
+            .welcome-title {
+                font-size: 72px;
+            }
+            .welcome-title img {
+                height: 90px;
+            }
+            .welcome-message {
+                font-size: 28px;
+            }
+            .touch-indicator {
+                font-size: 30px;
+                padding: 24px 48px;
+            }
+        }
         /* Responsive adjustments */
         @media (max-width: 1024px) {
             .welcome-title {

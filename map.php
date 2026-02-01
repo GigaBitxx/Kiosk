@@ -130,10 +130,20 @@ if ($result) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+        html {
+            height: 100%;
+            overflow-x: hidden;
+            -webkit-text-size-adjust: 100%;
+        }
         html, body {
             height: 100%;
             margin: 0;
             padding: 0;
+            width: 100%;
+            max-width: 100vw;
             font-family: 'Raleway', 'Helvetica Neue', sans-serif;
             background: #f5f5f5;
         }
@@ -154,10 +164,8 @@ if ($result) {
             }
         }
         
-        /* Prevent horizontal scroll */
-        html, body {
+        body {
             overflow-x: hidden;
-            max-width: 100%;
         }
 
         .back-to-home-btn {
@@ -220,6 +228,65 @@ if ($result) {
         @media (max-width: 1400px) {
             .controls {
                 max-width: min(800px, calc(100vw - 380px));
+            }
+        }
+
+        /* PC and large screens: use space better, avoid cramped UI */
+        @media (min-width: 1400px) {
+            .back-to-home-btn {
+                top: 24px;
+                left: 28px;
+                padding: 8px 14px;
+                font-size: 15px;
+            }
+            .controls {
+                top: 24px;
+                padding: 12px 16px;
+                gap: 10px;
+            }
+            .legend {
+                top: 24px;
+                right: 24px;
+                min-width: 260px;
+                max-width: 360px;
+            }
+            .leaflet-control-zoom {
+                left: 24px !important;
+            }
+            .leaflet-control-zoom a {
+                width: 56px !important;
+                height: 56px !important;
+                font-size: 26px !important;
+            }
+            .map-type-toggle {
+                bottom: 24px;
+                left: 24px;
+            }
+            .map-type-btn {
+                width: 88px;
+                height: 96px;
+            }
+            .search-suggestion-panel {
+                top: 88px;
+                left: 28px;
+                width: 360px;
+                max-height: calc(100vh - 140px);
+            }
+        }
+        @media (min-width: 1920px) {
+            .back-to-home-btn {
+                left: 40px;
+            }
+            .legend {
+                right: 40px;
+                max-width: 380px;
+            }
+            .leaflet-control-zoom {
+                left: 32px !important;
+            }
+            .map-type-toggle {
+                left: 32px;
+                bottom: 32px;
             }
         }
 
@@ -1247,6 +1314,12 @@ if ($result) {
             max-width: 360px;
             width: calc(100% - 40px);
             padding: 18px 20px 20px;
+        }
+        @media (min-width: 768px) {
+            .search-result-card {
+                max-width: 420px;
+                padding: 20px 24px 24px;
+            }
         }
 
         .search-result-close {

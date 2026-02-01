@@ -24,6 +24,7 @@
         width: calc(100% - var(--sidebar-width));
         box-sizing: border-box;
         overflow-x: hidden;
+        transition: margin-left 0.2s ease, width 0.2s ease, padding 0.3s ease;
     }
     .sidebar.collapsed + .main {
         margin-left: var(--sidebar-collapsed-width);
@@ -34,10 +35,23 @@
         .main {
             width: 100% !important;
             margin-left: 0 !important;
+            padding: 24px 20px !important;
         }
         .sidebar.collapsed + .main {
             width: 100% !important;
             margin-left: 0 !important;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .main {
+            padding: 16px 12px !important;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .main {
+            padding: 12px 8px !important;
         }
     }
     /* Sidebar styles moved to external CSS file */
