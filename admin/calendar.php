@@ -14,7 +14,7 @@ $query = "SELECT * FROM (
               CONCAT(d.first_name, ' ', d.last_name) AS name,
               d.date_of_burial AS event_date,
               p.section AS section,
-              p.`row_number` AS row_number,
+              p.`row_number` AS plot_row,
               p.`plot_number` AS plot_number,
               NULL AS description
             FROM deceased d 
@@ -30,7 +30,7 @@ $query = "SELECT * FROM (
               e.title AS name,
               e.event_date AS event_date,
               NULL AS section,
-              NULL AS row_number,
+              NULL AS plot_row,
               NULL AS plot_number,
               e.description AS description
             FROM events e
@@ -53,7 +53,7 @@ $query = "SELECT * FROM (
               CONCAT(d.first_name, ' ', d.last_name) AS name,
               d.date_of_burial AS event_date,
               p.section AS section,
-              p.`row_number` AS row_number,
+              p.`row_number` AS plot_row,
               p.`plot_number` AS plot_number,
               NULL AS description
             FROM deceased d 
@@ -69,7 +69,7 @@ $query = "SELECT * FROM (
               e.title AS name,
               e.event_date AS event_date,
               NULL AS section,
-              NULL AS row_number,
+              NULL AS plot_row,
               NULL AS plot_number,
               e.description AS description
             FROM events e
