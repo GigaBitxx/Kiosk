@@ -7,33 +7,37 @@ if ($_SESSION['role'] !== 'admin') {
 require_once '../config/database.php';
 
 // Get upcoming interments (next 30 days)
-$query = "SELECT 
-            'deceased' as source_type,
-            d.deceased_id as id,
-            CONCAT(d.first_name, ' ', d.last_name) as name,
-            d.date_of_burial as event_date,
-            p.section,
-            p.`row_number` as row_number,
-            p.`plot_number` as plot_number,
-            NULL as description
-          FROM deceased d 
-          JOIN plots p ON d.plot_id = p.plot_id 
-          WHERE d.date_of_burial >= CURDATE() 
-          AND d.date_of_burial <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
-          UNION ALL
-          SELECT 
-            'event' as source_type,
-            e.event_id as id,
-            e.title as name,
-            e.event_date,
-            NULL as section,
-            NULL as row_number,
-            NULL as plot_number,
-            e.description
-          FROM events e
-          WHERE e.type = 'burial'
-          AND e.event_date >= CURDATE() 
-          AND e.event_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+$query = "SELECT * FROM (
+            SELECT 
+              'deceased' AS source_type,
+              d.deceased_id AS id,
+              CONCAT(d.first_name, ' ', d.last_name) AS name,
+              d.date_of_burial AS event_date,
+              p.section AS section,
+              p.`row_number` AS row_number,
+              p.`plot_number` AS plot_number,
+              NULL AS description
+            FROM deceased d 
+            JOIN plots p ON d.plot_id = p.plot_id 
+            WHERE d.date_of_burial >= CURDATE() 
+              AND d.date_of_burial <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+
+            UNION ALL
+
+            SELECT 
+              'event' AS source_type,
+              e.event_id AS id,
+              e.title AS name,
+              e.event_date AS event_date,
+              NULL AS section,
+              NULL AS row_number,
+              NULL AS plot_number,
+              e.description AS description
+            FROM events e
+            WHERE e.type = 'burial'
+              AND e.event_date >= CURDATE() 
+              AND e.event_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+          ) t
           ORDER BY event_date ASC";
 $result = mysqli_query($conn, $query);
 $upcoming_interments = [];
@@ -42,33 +46,37 @@ while ($row = mysqli_fetch_assoc($result)) {
 }
 
 // Get recent interments (last 30 days)
-$query = "SELECT 
-            'deceased' as source_type,
-            d.deceased_id as id,
-            CONCAT(d.first_name, ' ', d.last_name) as name,
-            d.date_of_burial as event_date,
-            p.section,
-            p.`row_number` as row_number,
-            p.`plot_number` as plot_number,
-            NULL as description
-          FROM deceased d 
-          JOIN plots p ON d.plot_id = p.plot_id 
-          WHERE d.date_of_burial < CURDATE() 
-          AND d.date_of_burial >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-          UNION ALL
-          SELECT 
-            'event' as source_type,
-            e.event_id as id,
-            e.title as name,
-            e.event_date,
-            NULL as section,
-            NULL as row_number,
-            NULL as plot_number,
-            e.description
-          FROM events e
-          WHERE e.type = 'burial'
-          AND e.event_date < CURDATE() 
-          AND e.event_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+$query = "SELECT * FROM (
+            SELECT 
+              'deceased' AS source_type,
+              d.deceased_id AS id,
+              CONCAT(d.first_name, ' ', d.last_name) AS name,
+              d.date_of_burial AS event_date,
+              p.section AS section,
+              p.`row_number` AS row_number,
+              p.`plot_number` AS plot_number,
+              NULL AS description
+            FROM deceased d 
+            JOIN plots p ON d.plot_id = p.plot_id 
+            WHERE d.date_of_burial < CURDATE() 
+              AND d.date_of_burial >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+
+            UNION ALL
+
+            SELECT 
+              'event' AS source_type,
+              e.event_id AS id,
+              e.title AS name,
+              e.event_date AS event_date,
+              NULL AS section,
+              NULL AS row_number,
+              NULL AS plot_number,
+              e.description AS description
+            FROM events e
+            WHERE e.type = 'burial'
+              AND e.event_date < CURDATE() 
+              AND e.event_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+          ) t
           ORDER BY event_date DESC";
 $result = mysqli_query($conn, $query);
 $recent_interments = [];
