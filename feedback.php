@@ -70,10 +70,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_feedback'])) {
             overflow-x: hidden;
             overflow-y: auto;
         }
-        body.keyboard-open {
-            /* Create space so the fixed keyboard doesn't cover inputs/buttons */
-            padding-bottom: 320px;
-        }
         .feedback-shell {
             width: min(1400px, 95vw);
             background: var(--panel);
@@ -128,62 +124,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_feedback'])) {
         .btn-submit:active {
             transform: translateY(2px);
         }
-        .virtual-keyboard {
-            position: fixed;
-            left: 50%;
-            bottom: 2rem;
-            transform: translateX(-50%);
-            background: var(--panel);
-            border-radius: 20px;
-            width: min(1200px, 95vw);
-            border: 1px solid var(--border-soft);
-            box-shadow: 0 20px 50px rgba(15,23,42,0.12);
-            padding: 1rem;
-            display: none;
-            z-index: 1000;
-        }
-        .virtual-keyboard.active {
-            display: block;
-        }
-        .keyboard-row {
-            display: flex;
-            justify-content: center;
-            gap: 0.6rem;
-            margin-bottom: 0.6rem;
-            flex-wrap: nowrap;
-        }
-        .keyboard-row:last-child {
-            margin-bottom: 0;
-        }
-        .key-btn {
-            flex: 1;
-            max-width: 80px;
-            padding: 0.9rem 0;
-            border: none;
-            border-radius: 12px;
-            background: rgba(43, 76, 126, 0.08);
-            color: var(--primary);
-            font-size: 1.1rem;
-            font-weight: 600;
-        }
-        .key-btn.special {
-            max-width: 140px;
-            background: var(--accent);
-            color: #fff;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.3rem;
-        }
-        .key-btn:active {
-            transform: translateY(2px);
-        }
         @media (max-width: 768px) {
             body {
                 padding: 1rem;
-            }
-            body.keyboard-open {
-                padding-bottom: 360px;
             }
             .feedback-card {
                 padding: 1.5rem;
@@ -193,12 +136,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_feedback'])) {
             }
         }
         @media (max-width: 480px) {
-            body.keyboard-open {
-                padding-bottom: 420px;
-            }
-            .virtual-keyboard {
-                bottom: 1rem;
-            }
         }
         /* Notification Bubble Styles */
         .notification-bubble {
@@ -290,139 +227,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_feedback'])) {
             <span><?php echo htmlspecialchars($error_message); ?></span>
         </div>
     <?php endif; ?>
-    
-        <div class="virtual-keyboard" id="virtual-keyboard">
-            <div class="keyboard-row" data-row="1"></div>
-            <div class="keyboard-row" data-row="2"></div>
-            <div class="keyboard-row" data-row="3"></div>
-            <div class="keyboard-row" data-row="4"></div>
-        </div>
-
     <script>
-        const layout = [
-            ['ESC','1','2','3','4','5','6','7','8','9','0','-','=','DELETE'],
-            ['CAPS','Q','W','E','R','T','Y','U','I','O','P','[',']'],
-            ['A','S','D','F','G','H','J','K','L','`','/','\\'],
-            ['Z','X','C','V','B','N','M','SPACE','CLEAR']
-        ];
-
-        const keyboard = document.getElementById('virtual-keyboard');
-        const rows = keyboard.querySelectorAll('.keyboard-row');
-        const inputs = document.querySelectorAll('.touch-input');
-        let activeInput = null;
-        let isUppercase = true;
-        let caseButton = null;
-
-        inputs.forEach(input => {
-            input.addEventListener('focus', () => {
-                activeInput = input;
-                keyboard.classList.add('active');
-                document.body.classList.add('keyboard-open');
-                setTimeout(() => {
-                    if (activeInput && typeof activeInput.scrollIntoView === 'function') {
-                        activeInput.scrollIntoView({ block: 'center', behavior: 'smooth' });
-                    }
-                }, 50);
-            });
-            input.addEventListener('click', () => {
-                activeInput = input;
-                keyboard.classList.add('active');
-                document.body.classList.add('keyboard-open');
-                setTimeout(() => {
-                    if (activeInput && typeof activeInput.scrollIntoView === 'function') {
-                        activeInput.scrollIntoView({ block: 'center', behavior: 'smooth' });
-                    }
-                }, 50);
-            });
-        });
-
-        document.addEventListener('click', (event) => {
-            if (!keyboard.contains(event.target) && !event.target.closest('.touch-input') && !event.target.closest('.feedback-shell')) {
-                keyboard.classList.remove('active');
-                document.body.classList.remove('keyboard-open');
-            }
-        });
-
-        layout.forEach((keys, idx) => {
-            const row = rows[idx];
-            keys.forEach(key => {
-                const button = document.createElement('button');
-                button.type = 'button';
-                const isSpecial = ['SPACE','DELETE','CLEAR','CAPS','ESC'].includes(key);
-                button.className = 'key-btn' + (isSpecial ? ' special' : '');
-                button.dataset.key = key;
-
-                if (key === 'SPACE') {
-                    button.innerHTML = '<span>SPACE</span>';
-                } else if (key === 'CAPS') {
-                    button.innerHTML = '<i class="bx bx-up-arrow-alt"></i><span>CAPS</span>';
-                } else if (key === 'DELETE') {
-                    button.innerHTML = '<i class="bx bx-left-arrow-alt"></i>';
-                } else if (key === 'ESC') {
-                    button.innerHTML = '<span>ESC</span><i class="bx bx-refresh"></i>';
-                } else {
-                    button.textContent = key;
-                }
-
-                if (key === 'CAPS') {
-                    caseButton = button;
-                }
-                button.addEventListener('click', handleKeyPress);
-                row.appendChild(button);
-            });
-        });
-
-        function handleKeyPress(event) {
-            if (!activeInput) return;
-            const key = event.currentTarget.dataset.key;
-
-            if (key === 'CAPS') {
-                isUppercase = !isUppercase;
-                if (caseButton) {
-                    const label = caseButton.querySelector('span');
-                    const icon = caseButton.querySelector('i');
-                    if (label) label.innerHTML = isUppercase ? 'CAPS' : 'caps';
-                    if (icon) icon.className = isUppercase ? 'bx bx-up-arrow-alt' : 'bx bx-down-arrow-alt';
-                }
-                document.querySelectorAll('.key-btn').forEach(btn => {
-                    const keyChar = btn.dataset.key;
-                    if (!['SPACE','DELETE','CLEAR','CAPS','ESC'].includes(keyChar) && /^[a-zA-Z]$/.test(keyChar)) {
-                        btn.textContent = isUppercase ? keyChar.toUpperCase() : keyChar.toLowerCase();
-                    }
-                });
-                return;
-            }
-
-            if (key === 'ESC') {
-                keyboard.classList.remove('active');
-                document.body.classList.remove('keyboard-open');
-                return;
-            }
-
-            if (key === 'DELETE') {
-                const value = activeInput.value;
-                activeInput.value = value.slice(0, -1);
-                return;
-            }
-
-            if (key === 'CLEAR') {
-                activeInput.value = '';
-                return;
-            }
-
-            if (key === 'SPACE') {
-                activeInput.value += ' ';
-                return;
-            }
-
-            if (/^[a-zA-Z]$/.test(key)) {
-                activeInput.value += isUppercase ? key.toUpperCase() : key.toLowerCase();
-                return;
-            }
-
-            activeInput.value += key;
-        }
-
         // Notification handling
         document.addEventListener('DOMContentLoaded', function() {
             const successNotification = document.getElementById('successNotification');
