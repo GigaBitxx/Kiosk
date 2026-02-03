@@ -743,117 +743,32 @@ $timeline_type_icons = [
             background: linear-gradient(135deg, #e74c3c, #c0392b);
         }
         /* View Feedback Modal Styling */
-        #viewFeedbackModal .modal-dialog {
-            max-width: 1100px;
-            margin: 2.5vh auto;
+        #viewFeedbackModal .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.5);
         }
-        #viewFeedbackModal .modal-content {
-            max-height: 95vh;
-            display: flex;
-            flex-direction: column;
-        }
-        #viewFeedbackModal .modal-body {
-            flex: 1;
-            overflow-y: auto;
-            background: #f5f6fa;
+        #viewFeedbackModal.show .modal-backdrop {
+            opacity: 0.5;
         }
         #viewFeedbackModal .feedback-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            grid-template-columns: repeat(3, 1fr);
             gap: 16px;
-            align-items: stretch;
-        }
-        #viewFeedbackModal .feedback-card {
-            background: #ffffff;
-            border: 1px solid #e0e0e0;
-            border-radius: 12px;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
-        }
-        #viewFeedbackModal .feedback-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
-        }
-        #viewFeedbackModal .feedback-card-header {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            margin-bottom: 10px;
-        }
-        #viewFeedbackModal .feedback-name {
-            font-size: 16px;
-            font-weight: 600;
-            color: #1d2a38;
-        }
-        #viewFeedbackModal .feedback-meta {
-            font-size: 12px;
-            color: #666;
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-        #viewFeedbackModal .feedback-meta-row {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        #viewFeedbackModal .feedback-message {
-            font-size: 14px;
-            color: #1d2a38;
-            line-height: 1.6;
-            padding-top: 12px;
-            border-top: 1px solid #f0f0f0;
-            word-wrap: break-word;
-        }
-        #viewFeedbackModal .feedback-pagination {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 16px;
-            padding-top: 12px;
-            border-top: 1px solid #e5e7eb;
-            font-size: 13px;
-            color: #4b5563;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-        #viewFeedbackModal .feedback-page-buttons {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-        }
-        #viewFeedbackModal .feedback-page-btn {
-            border: 1px solid #d1d5db;
-            background: #ffffff;
-            border-radius: 6px;
-            padding: 4px 10px;
-            font-size: 12px;
-            cursor: pointer;
-            color: #374151;
-            min-width: 32px;
-            text-align: center;
-            transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-        }
-        #viewFeedbackModal .feedback-page-btn:hover:not(.active):not(:disabled) {
-            background: #f3f4f6;
-        }
-        #viewFeedbackModal .feedback-page-btn.active {
-            background: #2b4c7e;
-            border-color: #2b4c7e;
-            color: #ffffff;
-        }
-        #viewFeedbackModal .feedback-page-btn:disabled {
-            opacity: 0.6;
-            cursor: default;
         }
         @media (max-width: 768px) {
             #viewFeedbackModal .feedback-grid {
                 grid-template-columns: 1fr;
             }
+        }
+        /* Prevent layout from "resizing" when Bootstrap modal opens */
+        html {
+            /* Always reserve space for vertical scrollbar so content width
+               stays the same when modals toggle */
+            overflow-y: scroll;
+        }
+        body.modal-open {
+            /* Override Bootstrap's dynamic padding that can cause the main
+               layout to shift when the feedback modal opens */
+            padding-right: 0 !important;
         }
         /* Responsive Styles for Large Screens */
         @media (min-width: 1400px) {
@@ -1217,172 +1132,90 @@ $timeline_type_icons = [
         return text ? String(text).replace(/[&<>"']/g, m => map[m]) : '';
     }
 
-    // Show view feedback modal with pagination
+    // Show view feedback modal
     function showViewFeedback() {
         try {
             const feedbackData = <?php echo json_encode($feedback_entries ?? [], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
-            const pageSize = 6;
-            let currentPage = 1;
-
+            
             // Remove any existing modal first
             const existingModal = document.getElementById('viewFeedbackModal');
             if (existingModal) {
                 existingModal.remove();
             }
-
+            
             const modalEl = document.createElement('div');
             modalEl.className = 'modal fade';
             modalEl.id = 'viewFeedbackModal';
             modalEl.setAttribute('tabindex', '-1');
             modalEl.setAttribute('aria-hidden', 'true');
 
-            const renderPage = () => {
-                let bodyContent = '';
-
-                if (!feedbackData || feedbackData.length === 0) {
-                    bodyContent = `
-                        <div style="text-align: center; padding: 60px 40px; color: #666;">
-                            <i class='bx bx-message-square-dots' style="font-size: 64px; color: #ddd; margin-bottom: 16px;"></i>
-                            <p style="font-size: 18px; margin: 0; font-weight: 500;">No feedback submitted yet.</p>
-                            <p style="font-size: 14px; margin: 8px 0 0 0; color: #999;">Feedback from kiosk users will appear here.</p>
-                        </div>
-                    `;
-                } else {
-                    const totalItems = feedbackData.length;
-                    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-                    if (currentPage > totalPages) currentPage = totalPages;
-
-                    const start = (currentPage - 1) * pageSize;
-                    const end = Math.min(start + pageSize, totalItems);
-                    const pageItems = feedbackData.slice(start, end);
-
-                    let gridHTML = '<div class="feedback-grid">';
-                    pageItems.forEach((feedback) => {
-                        let formattedDate = '—';
-                        try {
-                            if (feedback.created_at) {
-                                const date = new Date(feedback.created_at);
-                                if (!isNaN(date.getTime())) {
-                                    formattedDate = date.toLocaleDateString('en-US', { 
-                                        year: 'numeric', 
-                                        month: 'short', 
-                                        day: 'numeric',
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                    });
-                                }
-                            }
-                        } catch (e) {
-                            console.error('Error formatting date:', e);
+            let feedbackHTML = '';
+            if (!feedbackData || feedbackData.length === 0) {
+                feedbackHTML = `
+                    <div style="text-align: center; padding: 60px 40px; color: #666;">
+                        <i class='bx bx-message-square-dots' style="font-size: 64px; color: #ddd; margin-bottom: 16px;"></i>
+                        <p style="font-size: 18px; margin: 0; font-weight: 500;">No feedback submitted yet.</p>
+                        <p style="font-size: 14px; margin: 8px 0 0 0; color: #999;">Feedback from kiosk users will appear here.</p>
+                    </div>
+                `;
+            } else {
+                feedbackHTML = '<div class="feedback-grid">';
+                feedbackData.forEach((feedback, index) => {
+                let formattedDate = '—';
+                try {
+                    if (feedback.created_at) {
+                        const date = new Date(feedback.created_at);
+                        if (!isNaN(date.getTime())) {
+                            formattedDate = date.toLocaleDateString('en-US', { 
+                                year: 'numeric', 
+                                month: 'short', 
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            });
                         }
-
-                        gridHTML += `
-                            <div class="feedback-card">
-                                <div class="feedback-card-header">
-                                    <div class="feedback-name">
-                                        ${escapeHtml(feedback.full_name)}
-                                    </div>
-                                    <div class="feedback-meta">
-                                        ${feedback.contact ? `
-                                            <div class="feedback-meta-row">
-                                                <i class='bx bx-envelope' style="font-size: 14px;"></i>
-                                                <span>${escapeHtml(feedback.contact)}</span>
-                                            </div>
-                                        ` : ''}
-                                        <div class="feedback-meta-row">
-                                            <i class='bx bx-time' style="font-size: 13px;"></i>
-                                            <span>${formattedDate}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="feedback-message">
-                                    ${escapeHtml(feedback.message)}
-                                </div>
-                            </div>
-                        `;
-                    });
-                    gridHTML += '</div>';
-
-                    // Build pagination controls
-                    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-                    let pagesHTML = '';
-                    const maxPageButtons = 5;
-                    let startPage = Math.max(1, currentPage - 2);
-                    let endPage = Math.min(totalPages, startPage + maxPageButtons - 1);
-                    if (endPage - startPage + 1 < maxPageButtons) {
-                        startPage = Math.max(1, endPage - maxPageButtons + 1);
                     }
-
-                    for (let p = startPage; p <= endPage; p++) {
-                        pagesHTML += `
-                            <button type="button" class="feedback-page-btn ${p === currentPage ? 'active' : ''}" data-page="${p}">
-                                ${p}
-                            </button>
-                        `;
-                    }
-
-                    bodyContent = `
-                        ${gridHTML}
-                        <div class="feedback-pagination">
-                            <div>
-                                Showing <strong>${start + 1}</strong>–<strong>${end}</strong> of <strong>${totalItems}</strong> feedback
-                            </div>
-                            <div class="feedback-page-buttons">
-                                <button type="button" class="feedback-page-btn" data-prev ${currentPage === 1 ? 'disabled' : ''}>Prev</button>
-                                ${pagesHTML}
-                                <button type="button" class="feedback-page-btn" data-next ${currentPage === totalPages ? 'disabled' : ''}>Next</button>
+                } catch (e) {
+                    console.error('Error formatting date:', e);
+                }
+                
+                feedbackHTML += `
+                    <div style="background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 20px; transition: all 0.2s;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                            <div style="flex: 1;">
+                                <div style="font-size: 16px; font-weight: 600; color: #1d2a38; margin-bottom: 4px;">
+                                    ${escapeHtml(feedback.full_name)}
+                                </div>
+                                ${feedback.contact ? `
+                                    <div style="font-size: 13px; color: #666; margin-bottom: 4px;">
+                                        <i class='bx bx-envelope' style="font-size: 14px; margin-right: 4px;"></i>
+                                        ${escapeHtml(feedback.contact)}
+                                    </div>
+                                ` : ''}
+                                <div style="font-size: 12px; color: #999;">
+                                    <i class='bx bx-time' style="font-size: 13px; margin-right: 4px;"></i>
+                                    ${formattedDate}
+                                </div>
                             </div>
                         </div>
-                    `;
-                }
-
-                const bodyEl = modalEl.querySelector('.modal-body');
-                if (bodyEl) {
-                    bodyEl.innerHTML = bodyContent;
-
-                    // Wire up pagination events
-                    const prevBtn = bodyEl.querySelector('[data-prev]');
-                    const nextBtn = bodyEl.querySelector('[data-next]');
-                    const pageBtns = bodyEl.querySelectorAll('.feedback-page-btn[data-page]');
-
-                    if (prevBtn) {
-                        prevBtn.addEventListener('click', () => {
-                            if (currentPage > 1) {
-                                currentPage--;
-                                renderPage();
-                            }
-                        });
-                    }
-                    if (nextBtn) {
-                        nextBtn.addEventListener('click', () => {
-                            const totalItems = feedbackData ? feedbackData.length : 0;
-                            const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-                            if (currentPage < totalPages) {
-                                currentPage++;
-                                renderPage();
-                            }
-                        });
-                    }
-                    pageBtns.forEach(btn => {
-                        btn.addEventListener('click', () => {
-                            const target = parseInt(btn.getAttribute('data-page'), 10);
-                            if (!isNaN(target) && target !== currentPage) {
-                                currentPage = target;
-                                renderPage();
-                            }
-                        });
-                    });
-                }
-            };
+                        <div style="font-size: 14px; color: #1d2a38; line-height: 1.6; padding-top: 12px; border-top: 1px solid #f0f0f0;">
+                            ${escapeHtml(feedback.message)}
+                        </div>
+                    </div>
+                `;
+                });
+                feedbackHTML += '</div>';
+            }
 
             modalEl.innerHTML = `
-            <div class="modal-dialog modal-xl">
-                <div class="modal-content">
+            <div class="modal-dialog modal-xl" style="max-width: 95vw; margin: 2.5vh auto;">
+                <div class="modal-content" style="max-height: 95vh; display: flex; flex-direction: column;">
                     <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e0e0e0; padding: 20px 24px;">
                         <h5 class="modal-title" style="font-size: 1.5rem; font-weight: 600; margin: 0;">View Feedback</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body" style="padding: 24px;">
+                    <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 24px;">
+                        ${feedbackHTML}
                     </div>
                 </div>
             </div>
@@ -1391,9 +1224,6 @@ $timeline_type_icons = [
             document.body.appendChild(modalEl);
             const modal = new bootstrap.Modal(modalEl);
             modal.show();
-
-            // Initial render
-            renderPage();
 
             modalEl.addEventListener('hidden.bs.modal', function () {
                 modalEl.remove();
