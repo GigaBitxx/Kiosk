@@ -3819,6 +3819,14 @@ if ($result) {
                             el.addEventListener('click', (e) => {
                                 if (e.target.closest('.search-suggestion-wayfinding')) return;
                                 if (isNaN(lat) || isNaN(lng)) return;
+
+                                // When a suggestion is selected, reset the search UI back to default
+                                const searchInput = document.getElementById('searchDeceased');
+                                if (searchInput) searchInput.value = '';
+                                if (typeof closeSearchSuggestionPanel === 'function') {
+                                    closeSearchSuggestionPanel();
+                                }
+
                                 const zoomLevel = getResponsiveZoom(20, 19);
                                 map.flyTo([lat, lng], zoomLevel, { duration: 0.8 });
                                 setTimeout(() => {
@@ -4059,6 +4067,13 @@ if ($result) {
 
                             el.addEventListener('click', () => {
                                 if (!plotId || isNaN(lat) || isNaN(lng)) return;
+
+                                // When a suggestion is selected, reset the search UI back to default
+                                const searchInput = document.getElementById('searchDeceased');
+                                if (searchInput) searchInput.value = '';
+                                if (typeof closeSearchSuggestionPanel === 'function') {
+                                    closeSearchSuggestionPanel();
+                                }
                                 
                                 // Fly to the plot location - zoom in closer
                                 const zoomLevel = getResponsiveZoom(19, 18); // Closer zoom
