@@ -25,4 +25,3 @@ if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > 
 $_SESSION['last_activity'] = time();
 
 require_once __DIR__ . '/logging.php';
-?> 
