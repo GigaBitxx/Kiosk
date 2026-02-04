@@ -1016,20 +1016,52 @@ while ($row = mysqli_fetch_assoc($result)) {
          * (Same logic as staff calendar.)
          */
         function getPhilippineHolidaysForYear(year) {
-            const fixedHolidays = [
-                { month: 1,  day: 1,  title: "New Year's Day" },
-                { month: 4,  day: 9,  title: "Araw ng Kagitingan" },
-                { month: 5,  day: 1,  title: "Labor Day" },
-                { month: 6,  day: 12, title: "Independence Day" },
-                { month: 8,  day: 21, title: "Ninoy Aquino Day" },
-                { month: 11, day: 1,  title: "All Saints' Day" },
-                { month: 11, day: 2,  title: "All Souls' Day" },
-                { month: 11, day: 30, title: "Bonifacio Day" },
-                { month: 12, day: 25, title: "Christmas Day" },
-                { month: 12, day: 30, title: "Rizal Day" }
-            ];
+            // 2026 Philippines Holidays and Special Non-Working Days
+            // Based on Proclamation 1006 signed September 3, 2025
+            
+            let holidays = [];
+            
+            // Year-specific holidays (2026)
+            if (year === 2026) {
+                // Regular Holidays
+                holidays = [
+                    { month: 1,  day: 1,  title: "New Year's Day" },
+                    { month: 4,  day: 2,  title: "Maundy Thursday" },
+                    { month: 4,  day: 3,  title: "Good Friday" },
+                    { month: 4,  day: 9,  title: "Araw ng Kagitingan" },
+                    { month: 5,  day: 1,  title: "Labor Day" },
+                    { month: 6,  day: 12, title: "Independence Day" },
+                    { month: 8,  day: 31, title: "National Heroes Day" },
+                    { month: 11, day: 30, title: "Bonifacio Day" },
+                    { month: 12, day: 25, title: "Christmas Day" },
+                    { month: 12, day: 30, title: "Rizal Day" },
+                    // Special Non-Working Days
+                    { month: 2,  day: 17, title: "Chinese New Year" },
+                    { month: 4,  day: 4,  title: "Black Saturday" },
+                    { month: 8,  day: 21, title: "Ninoy Aquino Day" },
+                    { month: 11, day: 1,  title: "All Saints' Day" },
+                    { month: 11, day: 2,  title: "All Souls' Day" },
+                    { month: 12, day: 8,  title: "Feast of the Immaculate Conception of Mary" },
+                    { month: 12, day: 24, title: "Christmas Eve" },
+                    { month: 12, day: 31, title: "Last Day of the Year" }
+                ];
+            } else {
+                // Fixed-date regular and special (non-working) holidays for other years
+                holidays = [
+                    { month: 1,  day: 1,  title: "New Year's Day" },
+                    { month: 4,  day: 9,  title: "Araw ng Kagitingan" },
+                    { month: 5,  day: 1,  title: "Labor Day" },
+                    { month: 6,  day: 12, title: "Independence Day" },
+                    { month: 8,  day: 21, title: "Ninoy Aquino Day" },
+                    { month: 11, day: 1,  title: "All Saints' Day" },
+                    { month: 11, day: 2,  title: "All Souls' Day" },
+                    { month: 11, day: 30, title: "Bonifacio Day" },
+                    { month: 12, day: 25, title: "Christmas Day" },
+                    { month: 12, day: 30, title: "Rizal Day" }
+                ];
+            }
 
-            return fixedHolidays.map(h => {
+            return holidays.map(h => {
                 const month = String(h.month).padStart(2, '0');
                 const day = String(h.day).padStart(2, '0');
                 const dateStr = `${year}-${month}-${day}`;
