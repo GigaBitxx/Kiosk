@@ -214,12 +214,12 @@ function rowNumberToLetter($row_number) {
 // Get rows data for search form (when search_section is selected)
 $rows_data = [];
 if (!empty($search_section)) {
-    // Use GROUP BY instead of DISTINCT for better compatibility
-    $rows_query = "SELECT row_number
-                   FROM plots
-                   WHERE section_id = ?
-                   GROUP BY row_number
-                   ORDER BY row_number";
+    // Use explicit table alias and avoid any potential reserved-word issues
+    $rows_query = "SELECT p.row_number
+                   FROM plots AS p
+                   WHERE p.section_id = ?
+                   GROUP BY p.row_number
+                   ORDER BY p.row_number";
     $stmt = mysqli_prepare($conn, $rows_query);
     if ($stmt) {
         mysqli_stmt_bind_param($stmt, "i", $search_section);
