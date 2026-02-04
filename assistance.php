@@ -1,6 +1,52 @@
 <?php
 require_once 'config/database.php';
 
+// Automatically determine urgency based on category/description
+function calculateUrgency($category, $description, $customCategory = '')
+{
+    $categoryLower = strtolower((string)$category . ' ' . (string)$customCategory);
+    $descriptionLower = strtolower((string)$description);
+
+    // If the category/custom category clearly indicates emergency-type concerns, mark as urgent
+    if (preg_match('/emergency|medical|injur|bleed|security|police|ambulance|fire|accident/', $categoryLower)) {
+        return 'urgent';
+    }
+
+    // Keyword-based urgency detection from the description
+    $urgentKeywords = [
+        'emergency',
+        'urgent',
+        'immediately',
+        'asap',
+        'accident',
+        'bleeding',
+        'injured',
+        'injury',
+        'collapsed',
+        'unconscious',
+        'lost child',
+        'missing',
+        'fight',
+        'security',
+        'police',
+        'ambulance',
+        'fire',
+        'danger',
+        'life-threatening',
+        'life threatening',
+        'help now'
+    ];
+
+    foreach ($urgentKeywords as $keyword) {
+        if (strpos($descriptionLower, $keyword) !== false) {
+            return 'urgent';
+        }
+    }
+
+    // Default
+    return 'normal';
+}
+
 // Handle assistance request submission
 $success_message = '';
 $error_message = '';
@@ -20,20 +66,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_assistance']))
         )");
     }
     
-    $category = mysqli_real_escape_string($conn, $_POST['category'] ?? '');
-    $description = mysqli_real_escape_string($conn, $_POST['description'] ?? '');
-    $urgency = mysqli_real_escape_string($conn, $_POST['urgency'] ?? 'normal');
-    $custom_category = !empty($_POST['custom_category']) ? mysqli_real_escape_string($conn, $_POST['custom_category']) : NULL;
+    // Use raw values for logic, escaped values for database
+    $raw_category = $_POST['category'] ?? '';
+    $raw_description = $_POST['description'] ?? '';
+    $raw_custom_category = $_POST['custom_category'] ?? '';
+
+    $category = mysqli_real_escape_string($conn, $raw_category);
+    $description = mysqli_real_escape_string($conn, $raw_description);
+    $custom_category = !empty($raw_custom_category) ? mysqli_real_escape_string($conn, $raw_custom_category) : NULL;
+    
+    // Automatic urgency based on category/description
+    $calculated_urgency = calculateUrgency($raw_category, $raw_description, $raw_custom_category);
+    $urgency = mysqli_real_escape_string($conn, $calculated_urgency);
     
     // Validate description length
-    $desc_length = strlen($description);
+    $desc_length = strlen($raw_description);
     if ($desc_length > 200) {
         $error_message = 'Description must not exceed 200 characters.';
-    } elseif (empty($category)) {
+    } elseif (empty($raw_category)) {
         $error_message = 'Please select a category.';
     } else {
         // If category is 'others', use custom_category
-        $final_category = ($category === 'others' && !empty($custom_category)) ? $custom_category : $category;
+        $final_category = ($raw_category === 'others' && !empty($raw_custom_category)) ? $custom_category : $category;
         
         $insert_query = "INSERT INTO assistance_requests (category, description, urgency, custom_category) VALUES ('$final_category', '$description', '$urgency', " . ($custom_category ? "'$custom_category'" : "NULL") . ")";
         if (mysqli_query($conn, $insert_query)) {
@@ -232,60 +286,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_assistance']))
             color: #c0392b;
             font-weight: 600;
         }
-        .urgency-section {
-            margin-bottom: 2.5rem;
-        }
-        .urgency-toggle {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-        }
-        .urgency-option {
-            flex: 1;
-            max-width: 300px;
-            padding: 1.25rem;
-            border: 2px solid var(--border-soft);
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            background: var(--panel);
-        }
-        .urgency-option:hover {
-            border-color: var(--accent);
-            background: rgba(43, 76, 126, 0.05);
-        }
-        .urgency-option.active {
-            border-color: var(--accent);
-            background: var(--accent);
-            color: #fff;
-        }
-        .urgency-option i {
-            font-size: 1.5rem;
-        }
-        .urgency-option.normal i {
-            color: #f39c12;
-        }
-        .urgency-option.urgent i {
-            color: #e74c3c;
-        }
-        .urgency-option.active.normal i,
-        .urgency-option.active.urgent i {
-            color: #fff;
-        }
-        .urgency-option span {
-            font-weight: 600;
-            font-size: 1.1rem;
-        }
-        .urgency-note {
-            text-align: center;
-            font-size: 0.85rem;
-            color: #666;
-            margin-top: 0.75rem;
-            font-style: italic;
-        }
         .btn-submit {
             width: 100%;
             background: var(--accent);
@@ -348,12 +348,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_assistance']))
             }
             .category-buttons {
                 grid-template-columns: 1fr;
-            }
-            .urgency-toggle {
-                flex-direction: column;
-            }
-            .urgency-option {
-                max-width: 100%;
             }
         }
     </style>
@@ -422,26 +416,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_assistance']))
                 </div>
             </div>
 
-            <!-- Urgency Selection -->
-            <div class="urgency-section">
-                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                    <span style="background: var(--accent); color: #fff; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem;">3</span>
-                    <label class="form-label" style="margin: 0;">Urgency Selection</label>
-                </div>
-                <div class="urgency-toggle">
-                    <div class="urgency-option normal" data-urgency="normal">
-                        <i class='bx bx-time-five'></i>
-                        <span>Normal</span>
-                    </div>
-                    <div class="urgency-option urgent" data-urgency="urgent">
-                        <i class='bx bxs-hot'></i>
-                        <span>Urgent</span>
-                    </div>
-                </div>
-                <input type="hidden" name="urgency" id="selected-urgency" value="normal">
-                <p class="urgency-note">(Only needed if staff is actively monitoring requests.)</p>
-            </div>
-
             <!-- Submit Button -->
             <div class="mt-4">
                 <button type="submit" name="submit_assistance" class="btn-submit" id="submit-btn" disabled>
@@ -493,18 +467,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_assistance']))
                 }
                 
                 checkFormValidity();
-            });
-        });
-
-        // Urgency selection
-        const urgencyOptions = document.querySelectorAll('.urgency-option');
-        const selectedUrgencyInput = document.getElementById('selected-urgency');
-        
-        urgencyOptions.forEach(option => {
-            option.addEventListener('click', function() {
-                urgencyOptions.forEach(o => o.classList.remove('active'));
-                this.classList.add('active');
-                selectedUrgencyInput.value = this.getAttribute('data-urgency');
             });
         });
 
@@ -562,9 +524,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_assistance']))
                 errorNotification.classList.remove('show');
             }, 5000);
         }
-
-        // Set default urgency to normal
-        document.querySelector('.urgency-option.normal').classList.add('active');
     </script>
 </body>
 </html>
