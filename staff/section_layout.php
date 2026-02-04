@@ -21,10 +21,10 @@ $stmt->execute();
 $section = $stmt->get_result()->fetch_assoc();
 
 // Get all plots for this section without pagination
+// NOTE: We keep the SQL ordering simple and handle
+// more advanced/natural ordering in PHP below.
 $plots_query = "SELECT * FROM plots WHERE section_id = ? "
-    . "ORDER BY row_number ASC, "
-    . "LEFT(SUBSTRING_INDEX(SUBSTRING_INDEX(plot_number, '-', 2), '-', -1), 1) ASC, "
-    . "CAST(SUBSTRING(SUBSTRING_INDEX(SUBSTRING_INDEX(plot_number, '-', 2), '-', -1), 2) AS UNSIGNED) ASC";
+    . "ORDER BY row_number ASC, plot_number ASC";
 $stmt = $conn->prepare($plots_query);
 $stmt->bind_param("i", $section_id);
 $stmt->execute();
