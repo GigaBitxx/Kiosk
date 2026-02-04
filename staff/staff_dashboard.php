@@ -606,6 +606,80 @@ $timeline_type_icons = [
         .assistance-action-btn.archive:hover {
             background: #fecaca;
         }
+
+        /* Modern confirm overlay for archiving assistance requests */
+        .archive-confirm-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.45);
+            z-index: 11000;
+            align-items: center;
+            justify-content: center;
+        }
+        .archive-confirm-overlay.active {
+            display: flex;
+        }
+        .archive-confirm-dialog {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 24px 28px;
+            max-width: 420px;
+            width: 90%;
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.35);
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        .archive-confirm-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 0.5rem;
+        }
+        .archive-confirm-title i {
+            color: #b91c1c;
+            font-size: 1.4rem;
+        }
+        .archive-confirm-message {
+            font-size: 0.95rem;
+            color: #4b5563;
+            margin-bottom: 1.25rem;
+        }
+        .archive-confirm-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+        .archive-confirm-btn {
+            border-radius: 999px;
+            padding: 0.45rem 1.1rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: 1px solid transparent;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .archive-confirm-btn.cancel {
+            background: #f3f4f6;
+            color: #111827;
+            border-color: #e5e7eb;
+        }
+        .archive-confirm-btn.cancel:hover {
+            background: #e5e7eb;
+        }
+        .archive-confirm-btn.confirm {
+            background: #b91c1c;
+            color: #ffffff;
+            border-color: #b91c1c;
+        }
+        .archive-confirm-btn.confirm:hover {
+            background: #991b1b;
+            border-color: #991b1b;
+        }
         .assistance-requests-empty {
             text-align: center;
             padding: 3rem 2rem;
@@ -1536,6 +1610,28 @@ $timeline_type_icons = [
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="../assets/js/ui-settings.js"></script>
+
+<!-- Modern archive confirmation overlay -->
+<div class="archive-confirm-overlay" id="archiveConfirmOverlay">
+    <div class="archive-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="archiveConfirmTitle">
+        <div class="archive-confirm-title" id="archiveConfirmTitle">
+            <i class='bx bx-error-circle'></i>
+            <span>Archive assistance request?</span>
+        </div>
+        <p class="archive-confirm-message">
+            This request will be archived and moved out of today's active list. You can still view it under the archived tab for today.
+        </p>
+        <div class="archive-confirm-actions">
+            <button type="button" class="archive-confirm-btn cancel" id="archiveConfirmCancel">
+                Cancel
+            </button>
+            <button type="button" class="archive-confirm-btn confirm" id="archiveConfirmConfirm">
+                Archive
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
     // System-style notification bubble (shared pattern with map)
     function showAssistanceNotification(message, type = 'success') {
@@ -1620,6 +1716,58 @@ $timeline_type_icons = [
                     archivedContainer.style.display = 'block';
                     icon.className = 'bx bx-list-ul';
                     this.title = 'View active requests';
+                }
+            });
+        }
+
+        // Modern archive confirmation handling
+        const archiveForms = document.querySelectorAll('.assistance-archive-form');
+        const archiveOverlay = document.getElementById('archiveConfirmOverlay');
+        const cancelBtn = document.getElementById('archiveConfirmCancel');
+        const confirmBtn = document.getElementById('archiveConfirmConfirm');
+        let pendingArchiveForm = null;
+
+        archiveForms.forEach(form => {
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                pendingArchiveForm = this;
+                if (archiveOverlay) {
+                    archiveOverlay.classList.add('active');
+                }
+            });
+        });
+
+        const closeArchiveOverlay = () => {
+            if (archiveOverlay) {
+                archiveOverlay.classList.remove('active');
+            }
+        };
+
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => {
+                pendingArchiveForm = null;
+                closeArchiveOverlay();
+            });
+        }
+
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', () => {
+                if (pendingArchiveForm) {
+                    const formToSubmit = pendingArchiveForm;
+                    pendingArchiveForm = null;
+                    closeArchiveOverlay();
+                    formToSubmit.submit();
+                } else {
+                    closeArchiveOverlay();
+                }
+            });
+        }
+
+        if (archiveOverlay) {
+            archiveOverlay.addEventListener('click', (event) => {
+                if (event.target === archiveOverlay) {
+                    pendingArchiveForm = null;
+                    closeArchiveOverlay();
                 }
             });
         }
@@ -1722,7 +1870,7 @@ $timeline_type_icons = [
                                             </button>
                                         </form>
                                     <?php endif; ?>
-                                    <form method="POST" action="" onsubmit="return confirm('Are you sure you want to archive this assistance request? It will be moved out of today\\'s active list.');">
+                                    <form method="POST" action="" class="assistance-archive-form">
                                         <input type="hidden" name="request_id" value="<?php echo (int) $request['request_id']; ?>">
                                         <input type="hidden" name="assistance_action" value="archive">
                                         <button type="submit" class="assistance-action-btn archive" title="Archive request">
