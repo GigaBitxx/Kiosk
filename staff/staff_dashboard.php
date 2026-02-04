@@ -56,6 +56,7 @@ if (mysqli_num_rows($check_table) > 0) {
 
 // Get assistance requests from kiosk users (only from today - resets daily)
 $assistance_requests = [];
+$archived_requests = [];
 $check_assistance_table = mysqli_query($conn, "SHOW TABLES LIKE 'assistance_requests'");
 if (mysqli_num_rows($check_assistance_table) > 0) {
     // Ensure archived column exists for assistance_requests (for soft-archiving)
@@ -125,6 +126,20 @@ if (mysqli_num_rows($check_assistance_table) > 0) {
     $assistance_result = mysqli_query($conn, $assistance_query);
     while ($row = mysqli_fetch_assoc($assistance_result)) {
         $assistance_requests[] = $row;
+    }
+
+    // Fetch today's archived requests (for archive list)
+    $archived_query = "SELECT * FROM assistance_requests 
+                        WHERE DATE(created_at) = '$today'
+                          AND archived = 1
+                        ORDER BY 
+                        created_at DESC 
+                        LIMIT 100";
+    $archived_result = mysqli_query($conn, $archived_query);
+    if ($archived_result) {
+        while ($row = mysqli_fetch_assoc($archived_result)) {
+            $archived_requests[] = $row;
+        }
     }
 }
 
@@ -1482,6 +1497,32 @@ $timeline_type_icons = [
         overlay.classList.remove('active');
         document.body.style.overflow = '';
     }
+
+    // Toggle between active and archived assistance requests
+    const toggleArchivedBtn = document.getElementById('toggleArchivedBtn');
+    if (toggleArchivedBtn) {
+        toggleArchivedBtn.addEventListener('click', function () {
+            const activeContainer = document.getElementById('activeRequestsContainer');
+            const archivedContainer = document.getElementById('archivedRequestsContainer');
+            const icon = this.querySelector('i');
+
+            if (!activeContainer || !archivedContainer || !icon) return;
+
+            const showingArchived = archivedContainer.style.display === 'block';
+
+            if (showingArchived) {
+                archivedContainer.style.display = 'none';
+                activeContainer.style.display = 'block';
+                icon.className = 'bx bx-archive-in';
+                this.title = 'View archived requests';
+            } else {
+                activeContainer.style.display = 'none';
+                archivedContainer.style.display = 'block';
+                icon.className = 'bx bx-list-ul';
+                this.title = 'View active requests';
+            }
+        });
+    }
 </script>
     <!-- Announcement Help Modal -->
     <div class="announcement-help-modal-overlay" id="announcementHelpModalOverlay" onclick="closeAnnouncementHelp(event)">
@@ -1490,19 +1531,20 @@ $timeline_type_icons = [
                 <button class="announcement-help-modal-close" onclick="closeAnnouncementHelp()" aria-label="Close">
                     <i class='bx bx-x'></i>
                 </button>
-                <span title="Archived requests" style="position:absolute; top:1.5rem; right:4.5rem; display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:50%; background:#f3f4f6; color:#4b5563;">
+                <button id="toggleArchivedBtn" type="button" title="View archived requests" style="position:absolute; top:1.5rem; right:4.5rem; display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:50%; background:#f3f4f6; color:#4b5563; border:none; cursor:pointer;">
                     <i class='bx bx-archive-in'></i>
-                </span>
+                </button>
                 <h1 class="announcement-help-modal-title">Request Assistance</h1>
             </div>
             <div class="announcement-help-modal-body">
-                <?php if (empty($assistance_requests)): ?>
-                    <div class="assistance-requests-empty">
-                        <i class='bx bx-inbox'></i>
-                        <p>No assistance requests at this time.</p>
-                    </div>
-                <?php else: ?>
-                    <?php 
+                <div id="activeRequestsContainer">
+                    <?php if (empty($assistance_requests)): ?>
+                        <div class="assistance-requests-empty">
+                            <i class='bx bx-inbox'></i>
+                            <p>No assistance requests at this time.</p>
+                        </div>
+                    <?php else: ?>
+                        <?php 
                     // Category icons mapping
                     $category_icons = [
                         'help-finding-grave' => 'bx bxs-pin',
@@ -1584,8 +1626,79 @@ $timeline_type_icons = [
                                 </div>
                             </div>
                         </div>
-                    <?php endforeach; ?>
-                <?php endif; ?>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+
+                <div id="archivedRequestsContainer" style="display:none;">
+                    <?php if (empty($archived_requests)): ?>
+                        <div class="assistance-requests-empty">
+                            <i class='bx bx-archive'></i>
+                            <p>No archived requests for today.</p>
+                        </div>
+                    <?php else: ?>
+                        <?php 
+                        // Reuse same mappings for archived list
+                        $category_icons = [
+                            'help-finding-grave' => 'bx bxs-pin',
+                            'burial-schedule-inquiry' => 'bx bx-square',
+                            'map-navigation-help' => 'bx bx-compass',
+                            'general-inquiry' => 'bx bx-bulb',
+                        ];
+                        $category_names = [
+                            'help-finding-grave' => 'Help Finding a Grave',
+                            'burial-schedule-inquiry' => 'Burial Schedule Inquiry',
+                            'map-navigation-help' => 'Map Navigation Help',
+                            'general-inquiry' => 'General Inquiry',
+                        ];
+
+                        foreach ($archived_requests as $request):
+                            $category = $request['category'];
+                            $is_urgent = $request['urgency'] === 'urgent';
+
+                            if ($category === 'others' && !empty($request['custom_category'])) {
+                                $category_name = htmlspecialchars($request['custom_category']);
+                                $icon = 'bx bx-message-dots';
+                            } else {
+                                $icon = isset($category_icons[$category]) ? $category_icons[$category] : 'bx bx-message-dots';
+                                $category_name = isset($category_names[$category]) ? $category_names[$category] : ucwords(str_replace(['-', '_'], ' ', $category));
+                            }
+
+                            $request_date = new DateTime($request['created_at']);
+                        ?>
+                            <div class="assistance-request-item <?php echo $is_urgent ? 'urgent' : ''; ?>">
+                                <div class="assistance-request-header">
+                                    <div class="assistance-request-category">
+                                        <i class='<?php echo $icon; ?>'></i>
+                                        <span><?php echo htmlspecialchars($category_name); ?></span>
+                                    </div>
+                                    <span class="assistance-request-urgency <?php echo $request['urgency']; ?>">
+                                        <i class='bx <?php echo $is_urgent ? 'bxs-hot' : 'bx-time-five'; ?>'></i>
+                                        <?php echo ucfirst($request['urgency']); ?>
+                                    </span>
+                                </div>
+
+                                <?php if (!empty($request['description'])): ?>
+                                    <div class="assistance-request-description">
+                                        <?php echo nl2br(htmlspecialchars($request['description'])); ?>
+                                    </div>
+                                <?php endif; ?>
+
+                                <div class="assistance-request-meta">
+                                    <div>
+                                        <span class="assistance-request-status archived">
+                                            Archived
+                                        </span>
+                                        <small>
+                                            <i class='bx bx-time'></i>
+                                            <?php echo $request_date->format('M d, Y - h:i A'); ?>
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
     </div>
