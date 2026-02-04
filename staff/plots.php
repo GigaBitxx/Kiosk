@@ -1606,19 +1606,19 @@ if (!empty($params)) {
                         <select id="search_section" name="search_section">
                             <option value="">All Sections</option>
                             <?php 
-                            // Get sections for search form
-                            $search_sections_query = "SELECT s.section_id, s.section_name, s.section_code 
-                                                     FROM sections s
-                                                     JOIN plots p ON p.section_id = s.section_id AND p.status = 'available'
-                                                     WHERE LOWER(s.section_name) NOT LIKE '%test%' 
-                                                     AND LOWER(s.section_code) NOT LIKE '%test%'
-                                                     AND UPPER(TRIM(s.section_name)) != 'AP'
-                                                     AND UPPER(TRIM(s.section_code)) != 'AP'
-                                                     AND s.section_name NOT REGEXP '^BLK[[:space:]]*[1-4]$'
-                                                     AND s.section_code NOT REGEXP '^BLK[[:space:]]*[1-4]$'
-                                                     GROUP BY s.section_id, s.section_name, s.section_code
-                                                     HAVING COUNT(p.plot_id) > 0
-                                                     ORDER BY s.section_code";
+                            // Get sections for search form.
+                            // Keep this in sync with the sections filter used by the staff map
+                            // (`api/get_map_plots.php`) so that deleted/hidden sections are treated
+                            // the same way everywhere.
+                            $search_sections_query = "SELECT DISTINCT section_id, section_name, section_code 
+                                                     FROM sections 
+                                                     WHERE section_name NOT LIKE '%TES%' 
+                                                     AND section_code NOT LIKE '%TES%'
+                                                     AND UPPER(TRIM(section_name)) != 'AP'
+                                                     AND UPPER(TRIM(section_code)) != 'AP'
+                                                     AND section_name NOT REGEXP '^BLK[[:space:]]*[1-4]$'
+                                                     AND section_code NOT REGEXP '^BLK[[:space:]]*[1-4]$'
+                                                     ORDER BY section_code";
                             $search_sections_result = mysqli_query($conn, $search_sections_query);
                             if ($search_sections_result && mysqli_num_rows($search_sections_result) > 0): 
                                 mysqli_data_seek($search_sections_result, 0); // Reset pointer

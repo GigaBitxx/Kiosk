@@ -380,6 +380,46 @@ $priority_query = $priority_select . $priority_from_where . "
 
 $priority_result = mysqli_query($conn, $priority_query);
 
+// Include currently expired contracts in the Archived Contracts modal as
+// "virtual archived" records so that contracts with expired dates appear
+// under 📦 Archived Contract Records even before they are formally archived
+// into the archived_contracts table.
+if ($priority_result && mysqli_num_rows($priority_result) > 0) {
+    while ($expired_row = mysqli_fetch_assoc($priority_result)) {
+        $archived_contracts[] = [
+            'plot_id'              => $expired_row['plot_id'] ?? null,
+            'record_id'            => $expired_row['record_id'] ?? null,
+            'deceased_name'        => $expired_row['display_name'] ?? '',
+            'section_name'         => $expired_row['section_name'] ?? null,
+            'plot_number'          => $expired_row['plot_number'] ?? null,
+            'row_number'           => $expired_row['row_number'] ?? null,
+            'contract_start_date'  => $expired_row['contract_start_date'] ?? null,
+            'contract_end_date'    => $expired_row['contract_end_date'] ?? null,
+            'contract_type'        => $expired_row['contract_type'] ?? null,
+            'contract_status'      => $expired_row['contract_status'] ?? 'expired',
+            'contract_notes'       => $expired_row['contract_notes'] ?? null,
+            'renewal_reminder_date'=> $expired_row['renewal_reminder_date'] ?? null,
+            'burial_date'          => $expired_row['date_of_burial'] ?? null,
+            'date_of_death'        => $expired_row['date_of_death'] ?? null,
+            'address'              => $expired_row['address'] ?? null,
+            'next_of_kin'          => $expired_row['next_of_kin'] ?? null,
+            // These fields are specific to records that actually live in
+            // archived_contracts; for "virtual" records we leave them empty.
+            'archived_at'          => null,
+            'archived_by'          => null,
+            'reason'               => 'Expired contract (auto-listed)',
+        ];
+    }
+
+    // Reset pointer so later sections (e.g. Expired Contracts panel) can
+    // iterate over $priority_result from the beginning again.
+    mysqli_data_seek($priority_result, 0);
+
+    // Update total count used by the Archived Contracts modal to reflect
+    // both real archived records and these virtual expired ones.
+    $archived_total_count = count($archived_contracts);
+}
+
 // Fetch expired contracts from archived_contracts table
 $archived_expired_contracts = [];
 $archived_expired_total = 0;
