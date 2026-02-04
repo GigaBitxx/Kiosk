@@ -214,9 +214,11 @@ function rowNumberToLetter($row_number) {
 // Get rows data for search form (when search_section is selected)
 $rows_data = [];
 if (!empty($search_section)) {
-    $rows_query = "SELECT DISTINCT row_number 
-                   FROM plots 
-                   WHERE section_id = ? 
+    // Use GROUP BY instead of DISTINCT for better compatibility
+    $rows_query = "SELECT row_number
+                   FROM plots
+                   WHERE section_id = ?
+                   GROUP BY row_number
                    ORDER BY row_number";
     $stmt = mysqli_prepare($conn, $rows_query);
     if ($stmt) {
@@ -266,9 +268,11 @@ while ($row = mysqli_fetch_assoc($sections_result)) {
 // Get available rows for the currently selected section (for row filter options)
 $rows_list = [];
 if ($section_filter !== '' && ctype_digit($section_filter)) {
-    $rows_query = "SELECT DISTINCT row_number 
-                   FROM plots 
-                   WHERE section_id = " . intval($section_filter) . " 
+    // Use GROUP BY instead of DISTINCT for better compatibility
+    $rows_query = "SELECT row_number
+                   FROM plots
+                   WHERE section_id = " . intval($section_filter) . "
+                   GROUP BY row_number
                    ORDER BY row_number";
     $rows_result = mysqli_query($conn, $rows_query);
     while ($row = mysqli_fetch_assoc($rows_result)) {
