@@ -165,33 +165,6 @@ while ($plot = mysqli_fetch_assoc($plots_result)) {
             text-decoration: none;
             transform: translateY(-1px);
         }
-        .alert {
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 16px;
-            font-size: 14px;
-            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        }
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-            transition: opacity 0.5s ease-out;
-        }
-        .alert-success.fade-out {
-            opacity: 0;
-            pointer-events: none;
-        }
-        .alert-danger {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .alert-info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
         .existing-plots {
             background: white;
             padding: 24px;
@@ -610,18 +583,6 @@ while ($plot = mysqli_fetch_assoc($plots_result)) {
                 </div>
             </div>
             
-            <?php if (!empty($success_message)): ?>
-            <div class="alert alert-success">
-                <?php echo htmlspecialchars($success_message); ?>
-            </div>
-            <?php endif; ?>
-
-            <?php if (!empty($error_message)): ?>
-            <div class="alert alert-danger">
-                <?php echo htmlspecialchars($error_message); ?>
-            </div>
-            <?php endif; ?>
-
             <div class="existing-plots">
                 <!-- Global filters for deleting plots -->
                 <div class="row mb-3">
@@ -915,19 +876,6 @@ while ($plot = mysqli_fetch_assoc($plots_result)) {
             updateSelectionInfo();
         };
         
-        // Auto-hide success messages after 3 seconds
-        document.addEventListener('DOMContentLoaded', function() {
-            const successAlerts = document.querySelectorAll('.alert-success');
-            successAlerts.forEach(alert => {
-                setTimeout(() => {
-                    alert.classList.add('fade-out');
-                    setTimeout(() => {
-                        alert.style.display = 'none';
-                    }, 500);
-                }, 3000);
-            });
-        });
-
         // Initialize enhanced functionality
         document.addEventListener('DOMContentLoaded', function() {
             // Populate row filter options from existing plots
@@ -1010,11 +958,11 @@ while ($plot = mysqli_fetch_assoc($plots_result)) {
             
             // Show notifications for PHP messages
             <?php if (!empty($success_message)): ?>
-            showNotification('<?php echo addslashes($success_message); ?>', 'success');
+            showNotification(<?php echo json_encode($success_message); ?>, 'success');
             <?php endif; ?>
             
             <?php if (!empty($error_message)): ?>
-            showNotification('<?php echo addslashes($error_message); ?>', 'error');
+            showNotification(<?php echo json_encode($error_message); ?>, 'error');
             <?php endif; ?>
             
             // Handle form submission - show confirmation modal

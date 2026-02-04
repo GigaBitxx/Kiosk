@@ -237,6 +237,58 @@ while ($row = mysqli_fetch_assoc($result)) {
         .fc {
             background: transparent;
         }
+        /* Hide FullCalendar now-indicator in all views (can show as vertical line in week/day; in month view a leftover element can appear after refresh) */
+        .fc-timegrid-now-indicator-container,
+        .fc-timegrid-now-indicator-line,
+        .fc .fc-timegrid-now-indicator-line,
+        .fc-timegrid-now-indicator-arrow,
+        .fc-timegrid-now-indicator,
+        .fc .fc-timegrid-now-indicator {
+            display: none !important;
+            visibility: hidden !important;
+        }
+        #calendar {
+            --fc-now-indicator-color: transparent;
+        }
+        #calendar [class*="now-indicator"] {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+        }
+        /* When a Bootstrap modal is open, keep calendar below it so no calendar line appears on top of modal */
+        body.modal-open .calendar-wrapper {
+            z-index: 0;
+        }
+        /* When date-events modal is open, ensure no FullCalendar line shows through */
+        body.modal-open .fc-timegrid-now-indicator-container,
+        body.modal-open .fc-timegrid-now-indicator-line,
+        body.modal-open .fc-timegrid-now-indicator-arrow,
+        body.modal-open .fc-timegrid-now-indicator {
+            display: none !important;
+            visibility: hidden !important;
+        }
+        /* Prevent any border/outline on date-events modal that could look like a vertical line */
+        #dateEventsModal .modal-dialog,
+        #dateEventsModal .modal-content {
+            border: none;
+            outline: none;
+        }
+        /* Ensure date-events modal and its backdrop sit above calendar and any FC elements */
+        #dateEventsModal.modal {
+            z-index: 1060;
+        }
+        #dateEventsModal .modal-dialog {
+            z-index: 1061;
+        }
+        #dateEventsModal .modal-content {
+            position: relative;
+            z-index: 1061;
+            background: #fff;
+        }
+        #dateEventsModal .modal-dialog:focus,
+        #dateEventsModal .modal-content:focus {
+            outline: none;
+        }
         
         .fc-theme-standard td, .fc-theme-standard th {
             border-color: #e0e0e0;
@@ -351,6 +403,30 @@ while ($row = mysqli_fetch_assoc($result)) {
         }
         .fc .fc-event {
             cursor: pointer;
+        }
+        /* Remove focus outline/ring from date cells so it doesn't show as a blue vertical line when opening the date modal */
+        #calendar .fc-daygrid-day,
+        #calendar .fc-daygrid-day-number,
+        #calendar .fc-daygrid-day-number a,
+        #calendar .fc-daygrid-day:focus,
+        #calendar .fc-daygrid-day-number:focus,
+        #calendar .fc-daygrid-day-number a:focus,
+        #calendar .fc-daygrid-day:focus-within,
+        #calendar .fc-daygrid-day-number a:focus-visible {
+            outline: none !important;
+            box-shadow: none !important;
+        }
+        body.modal-open #calendar .fc-daygrid-day,
+        body.modal-open #calendar .fc-daygrid-day-number,
+        body.modal-open #calendar .fc-daygrid-day-number a {
+            outline: none !important;
+            box-shadow: none !important;
+        }
+        /* Catch-all: FullCalendar can focus other internal elements (tables/divs) */
+        #calendar *:focus,
+        #calendar *:focus-visible {
+            outline: none !important;
+            box-shadow: none !important;
         }
         .side-boxes {
             flex: 1;
@@ -957,6 +1033,20 @@ while ($row = mysqli_fetch_assoc($result)) {
         .fc .fc-event {
             cursor: pointer;
         }
+        #calendar .fc-daygrid-day,
+        #calendar .fc-daygrid-day-number,
+        #calendar .fc-daygrid-day-number a,
+        #calendar .fc-daygrid-day:focus,
+        #calendar .fc-daygrid-day-number:focus,
+        #calendar .fc-daygrid-day-number a:focus,
+        #calendar .fc-daygrid-day:focus-within,
+        #calendar .fc-daygrid-day-number a:focus-visible,
+        body.modal-open #calendar .fc-daygrid-day,
+        body.modal-open #calendar .fc-daygrid-day-number,
+        body.modal-open #calendar .fc-daygrid-day-number a {
+            outline: none !important;
+            box-shadow: none !important;
+        }
         .fc-event-type-dot {
             display: inline-block;
             width: 8px;
@@ -1300,17 +1390,211 @@ while ($row = mysqli_fetch_assoc($result)) {
             }
         }, { passive: false });
 
+        const currentUserId = <?php echo $_SESSION['user_id']; ?>;
+
         // Flag to prevent multiple simultaneous modal opens
-        window.isOpeningDateModal = false;
+        let isOpeningDateModal = false;
+
+        // Helper to open the "Events for this date" modal (also used after adding events)
+        function openDateEventsModal(dateStr) {
+            // Prevent multiple simultaneous opens
+            if (isOpeningDateModal) {
+                return;
+            }
+
+            // If a previous dateEventsModal exists, hide and remove it to avoid duplicates
+            const existingDateModalEl = document.getElementById('dateEventsModal');
+            if (existingDateModalEl) {
+                const existingModal = bootstrap.Modal.getInstance(existingDateModalEl);
+                if (existingModal) {
+                    existingModal.hide();
+                }
+                existingDateModalEl.remove();
+            }
+
+            // Set flag to prevent multiple opens
+            isOpeningDateModal = true;
+
+            // Blur the clicked date cell/link so global focus outline doesn't show as a blue line
+            const cal = document.getElementById('calendar');
+            if (cal && cal.contains(document.activeElement)) {
+                document.activeElement.blur();
+            }
+
+            // Determine if the clicked date is in the past (based on date only)
+            const clickedDate = new Date(dateStr + 'T00:00:00');
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const isPastDate = clickedDate < today;
+
+            const formattedDate = formatDateLabel(clickedDate);
+
+            // Fetch events for the clicked date
+            fetch('../api/get_events.php?date=' + dateStr)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(events => {
+                    // Sort events so those with earlier times appear first
+                    events.sort((a, b) => {
+                        const aDate = new Date(a.start);
+                        const bDate = new Date(b.start);
+                        return aDate - bDate;
+                    });
+
+                    // Create modal element
+                    const modalEl = document.createElement('div');
+                    modalEl.className = 'modal fade';
+                    modalEl.id = 'dateEventsModal';
+                    modalEl.setAttribute('tabindex', '-1');
+                    modalEl.setAttribute('aria-hidden', 'true');
+
+                    const modalContent = `
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Events for ${formattedDate}</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="event-list mb-3">
+                                        ${events.length === 0 ? '<p>No events for this date</p>' : ''}
+                                        ${events.map(event => {
+                                            const isOwnEvent = event.extendedProps.created_by && event.extendedProps.created_by == currentUserId;
+                                            const isDue = !!event.extendedProps.is_due;
+                                            const eventId = event.id.replace('event_', '');
+                                            const eventDateOnly = event.start ? event.start.split('T')[0] : '';
+                                            const startTimeRaw = event.extendedProps?.event_time || '';
+                                            const endTimeRaw = event.extendedProps?.end_time || '';
+                                            const eventTimeLabel = formatEventTime(startTimeRaw, endTimeRaw);
+                                            return `
+                                            <div class="event-item p-2 border-bottom">
+                                                <div class="d-flex justify-content-between align-items-start gap-3">
+                                                    <div class="flex-grow-1">
+                                                        <h6 class="mb-1">${event.title}</h6>
+                                                        <div class="text-muted small">
+                                                            ${formatEventType(event.extendedProps.type)}${eventTimeLabel ? `: ${eventTimeLabel}` : ''}
+                                                        </div>
+                                                        <div class="text-muted small">
+                                                            Created by: ${event.extendedProps.creator_name || '—'}${event.extendedProps.creator_role ? ` (${event.extendedProps.creator_role})` : ''}
+                                                        </div>
+                                                    </div>
+                                                    ${isOwnEvent && !isDue ? `
+                                                        <div class="btn-group btn-group-sm align-self-center">
+                                                            <button class="btn btn-primary edit-event" data-event-id="${eventId}" data-event-title="${event.title}" data-event-type="${event.extendedProps?.type || event.extendedProps?.event_type || 'other'}" data-event-date="${eventDateOnly}" data-event-description="${event.extendedProps.description || ''}" data-event-start-time="${startTimeRaw}" data-event-end-time="${endTimeRaw}">
+                                                                <i class="bi bi-pencil"></i>
+                                                            </button>
+                                                            <button class="btn btn-danger delete-event" data-event-id="${eventId}">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                        ` : ''}
+                                                </div>
+                                            </div>
+                                            `;
+                                        }).join('')}
+                                    </div>
+                                    ${isPastDate ? '' : `
+                                    <button class="btn btn-primary w-100" onclick="showAddEventForm('${dateStr}')">
+                                        Add New Event
+                                    </button>
+                                    `}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    modalEl.innerHTML = modalContent;
+                    document.body.appendChild(modalEl);
+
+                    // Initialize Bootstrap modal (match staff behavior)
+                    const modal = new bootstrap.Modal(modalEl, {
+                        backdrop: 'static',
+                        keyboard: true
+                    });
+
+                    // Prevent body scroll jump when modal opens (match staff)
+                    modalEl.addEventListener('show.bs.modal', function () {
+                        const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+                        if (scrollbarWidth > 0) {
+                            document.body.style.paddingRight = scrollbarWidth + 'px';
+                        }
+                    });
+
+                    modalEl.addEventListener('hidden.bs.modal', function () {
+                        document.body.style.paddingRight = '';
+                        isOpeningDateModal = false;
+                    });
+
+                    modal.show();
+                    // Reset flag so next date click can open modal again
+                    isOpeningDateModal = false;
+
+                    // Add event listeners for delete buttons
+                    modalEl.querySelectorAll('.delete-event').forEach(btn => {
+                        btn.onclick = function (e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+
+                            const eventId = this.dataset.eventId;
+
+                            // Check if it's an interment (can't delete) or an event
+                            if (eventId && eventId.startsWith('interment_')) {
+                                alert('Interments cannot be deleted from the calendar. Please manage them from the deceased records.');
+                                return;
+                            }
+
+                            showDeleteEventModal(eventId, modalEl, modal, window.calendar);
+                        };
+                    });
+
+                    // Add event listeners for edit buttons
+                    modalEl.querySelectorAll('.edit-event').forEach(btn => {
+                        btn.onclick = function (e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+
+                            const eventId = this.dataset.eventId;
+                            const eventTitle = this.dataset.eventTitle;
+                            const eventType = this.dataset.eventType;
+                            const eventDate = this.dataset.eventDate;
+                            const startTime = this.dataset.eventStartTime || '';
+                            const endTime = this.dataset.eventEndTime || '';
+                            const eventDescription = this.dataset.eventDescription;
+
+                            modal.hide();
+                            modalEl.remove();
+
+                            window.showEditEventForm(eventId, eventTitle, eventType, eventDate, eventDescription, startTime, endTime);
+                        };
+                    });
+
+                    // Remove modal from DOM after it's hidden; ensure flag is reset when user closes modal
+                    modalEl.addEventListener('hidden.bs.modal', function () {
+                        modalEl.remove();
+                        isOpeningDateModal = false;
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error fetching events. Please try again.');
+                    // Reset flag on error
+                    isOpeningDateModal = false;
+                });
+        }
 
         document.addEventListener('DOMContentLoaded', function() {
-            const currentUserId = <?php echo $_SESSION['user_id']; ?>;
             var calendarEl = document.getElementById('calendar');
             window.calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: currentView,
                 /* Match the CSS height so the calendar area stays fixed */
                 height: 650,
                 headerToolbar: false,
+                /* Disable current-time vertical line so it never appears over the date modal */
+                nowIndicator: false,
                 // Only render as many weeks as the month actually needs,
                 // but still show spillover dates from adjacent months
                 fixedWeekCount: false,
@@ -1397,171 +1681,7 @@ while ($row = mysqli_fetch_assoc($result)) {
                     }
                 },
                 dateClick: function(info) {
-                    // Prevent multiple simultaneous opens - check flag first
-                    if (window.isOpeningDateModal) {
-                        return;
-                    }
-                    
-                    // Check if a modal is already open or being opened
-                    const existingDateModalEl = document.getElementById('dateEventsModal');
-                    if (existingDateModalEl) {
-                        const existingModal = bootstrap.Modal.getInstance(existingDateModalEl);
-                        if (existingModal && existingModal._isShown) {
-                            return; // Modal is already open, ignore click
-                        }
-                        // Remove stale modal element
-                        existingDateModalEl.remove();
-                    }
-                    
-                    // Set flag to prevent multiple opens
-                    window.isOpeningDateModal = true;
-                    
-                    // Determine if the clicked date is in the past (based on date only)
-                    const clickedDate = new Date(info.dateStr + 'T00:00:00');
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    const isPastDate = clickedDate < today;
-
-                    const formattedDate = formatDateLabel(clickedDate);
-
-                    // Fetch events for the clicked date
-                    fetch('../api/get_events.php?date=' + info.dateStr)
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error('Network response was not ok');
-                            }
-                            return response.json();
-                        })
-                        .then(events => {
-                            // Sort events so those with earlier times appear first
-                            events.sort((a, b) => {
-                                const aDate = new Date(a.start);
-                                const bDate = new Date(b.start);
-                                return aDate - bDate;
-                            });
-                            // Create modal element
-                            const modalEl = document.createElement('div');
-                            modalEl.className = 'modal fade';
-                            modalEl.id = 'dateEventsModal';
-                            modalEl.setAttribute('tabindex', '-1');
-                            modalEl.setAttribute('aria-hidden', 'true');
-
-                            let modalContent = `
-                                <div class="modal-dialog">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title">Events for ${formattedDate}</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                        </div>
-                                        <div class="modal-body">
-                                            <div class="event-list mb-3">
-                                                ${events.length === 0 ? '<p>No events for this date</p>' : ''}
-                                                ${events.map(event => {
-                                                    const isOwnEvent = event.extendedProps.created_by && event.extendedProps.created_by == currentUserId;
-                                                    const isDue = !!event.extendedProps.is_due;
-                                                    const eventId = event.id.replace('event_', '');
-                                                    const eventDateOnly = event.start ? event.start.split('T')[0] : '';
-                                                    const startTimeRaw = event.extendedProps?.event_time || '';
-                                                    const endTimeRaw = event.extendedProps?.end_time || '';
-                                                    const eventTimeLabel = formatEventTime(startTimeRaw, endTimeRaw);
-                                                    return `
-                                                    <div class="event-item p-2 border-bottom">
-                                                        <div class="d-flex justify-content-between align-items-start gap-3">
-                                                            <div class="flex-grow-1">
-                                                                <h6 class="mb-1">${event.title}</h6>
-                                                                <div class="text-muted small">
-                                                                    ${formatEventType(event.extendedProps.type)}${eventTimeLabel ? `: ${eventTimeLabel}` : ''}
-                                                            </div>
-                                                                <div class="text-muted small">
-                                                                    Created by: ${event.extendedProps.creator_name || '—'}${event.extendedProps.creator_role ? ` (${event.extendedProps.creator_role})` : ''}
-                                                                </div>
-                                                            </div>
-                                                            ${isOwnEvent && !isDue ? `
-                                                                <div class="btn-group btn-group-sm align-self-center">
-                                                                    <button class="btn btn-primary edit-event" data-event-id="${eventId}" data-event-title="${event.title}" data-event-type="${event.extendedProps?.type || event.extendedProps?.event_type || 'other'}" data-event-date="${eventDateOnly}" data-event-description="${event.extendedProps.description || ''}" data-event-start-time="${startTimeRaw}" data-event-end-time="${endTimeRaw}">
-                                                                        <i class="bi bi-pencil"></i>
-                                                                    </button>
-                                                                    <button class="btn btn-danger delete-event" data-event-id="${eventId}">
-                                                                        <i class="bi bi-trash"></i>
-                                                                    </button>
-                                                                </div>
-                                                                ` : ''}
-                                                        </div>
-                                                    </div>
-                                                    `;
-                                                }).join('')}
-                                            </div>
-                                            ${isPastDate ? '' : `
-                                            <button class="btn btn-primary w-100" onclick="showAddEventForm('${info.dateStr}')">
-                                                Add New Event
-                                            </button>
-                                            `}
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
-                            
-                            modalEl.innerHTML = modalContent;
-                            document.body.appendChild(modalEl);
-
-                            // Initialize Bootstrap modal
-                            const modal = new bootstrap.Modal(modalEl);
-                            modal.show();
-                            
-                            // Reset flag after modal is shown
-                            window.isOpeningDateModal = false;
-
-                            // Add event listeners for delete buttons
-                            modalEl.querySelectorAll('.delete-event').forEach(btn => {
-                                btn.onclick = function(e) {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    
-                                    const eventId = this.dataset.eventId;
-                                    
-                                    // Check if it's an interment (can't delete) or an event
-                                    if (eventId && eventId.startsWith('interment_')) {
-                                        alert('Interments cannot be deleted from the calendar. Please manage them from the deceased records.');
-                                        return;
-                                    }
-                                    
-                                    showDeleteEventModal(eventId, modalEl, modal, window.calendar);
-                                };
-                            });
-
-                            // Add event listeners for edit buttons
-                            modalEl.querySelectorAll('.edit-event').forEach(btn => {
-                                btn.onclick = function(e) {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    
-                                    const eventId = this.dataset.eventId;
-                                    const eventTitle = this.dataset.eventTitle;
-                                    const eventType = this.dataset.eventType;
-                                    const eventDate = this.dataset.eventDate;
-                                    const startTime = this.dataset.eventStartTime || '';
-                                    const endTime = this.dataset.eventEndTime || '';
-                                    const eventDescription = this.dataset.eventDescription;
-                                    
-                                    modal.hide();
-                                    modalEl.remove();
-                                    
-                                    window.showEditEventForm(eventId, eventTitle, eventType, eventDate, eventDescription, startTime, endTime);
-                                };
-                            });
-
-                            // Remove modal from DOM after it's hidden; ensure flag is reset when user closes modal
-                            modalEl.addEventListener('hidden.bs.modal', function () {
-                                modalEl.remove();
-                                window.isOpeningDateModal = false;
-                            });
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            alert('Error fetching events. Please try again.');
-                            // Reset flag on error
-                            window.isOpeningDateModal = false;
-                        });
+                    openDateEventsModal(info.dateStr);
                 },
                 eventClick: function(info) {
                     // Do not show details modal for static Philippine holiday background events

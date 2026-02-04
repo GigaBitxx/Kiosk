@@ -1157,7 +1157,7 @@ $events = [];
 
                             // Initialize Bootstrap modal with backdrop static to prevent body shift
                             const modal = new bootstrap.Modal(modalEl, {
-                                backdrop: true,
+                                backdrop: 'static',
                                 keyboard: true
                             });
                             

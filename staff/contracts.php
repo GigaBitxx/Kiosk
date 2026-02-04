@@ -57,6 +57,29 @@ $current_url_params = $_GET;
 unset($current_url_params['success']); // Remove success message from URL
 $current_url = 'contracts.php' . (!empty($current_url_params) ? '?' . http_build_query($current_url_params) : '');
 
+/**
+ * Check if a contract is expired but within the 7-day grace period before archiving.
+ * Used early for filtering which expired contracts appear in Archived Contract Records.
+ */
+function getPendingArchiveStatus($endDate, $status) {
+    if (!$endDate || $endDate === '0000-00-00' || $status !== 'expired') {
+        return ['is_pending' => false, 'days_remaining' => null];
+    }
+    try {
+        $end = new DateTime($endDate);
+        $today = new DateTime();
+        $archiveDate = clone $end;
+        $archiveDate->modify('+7 days');
+        if ($today < $archiveDate && $today >= $end) {
+            $daysRemaining = $today->diff($archiveDate)->days;
+            return ['is_pending' => true, 'days_remaining' => $daysRemaining];
+        }
+        return ['is_pending' => false, 'days_remaining' => null];
+    } catch (Exception $e) {
+        return ['is_pending' => false, 'days_remaining' => null];
+    }
+}
+
 // Fetch archived contracts for modal
 $archived_contracts = [];
 $archived_total_count = 0;
@@ -380,12 +403,18 @@ $priority_query = $priority_select . $priority_from_where . "
 
 $priority_result = mysqli_query($conn, $priority_query);
 
-// Include currently expired contracts in the Archived Contracts modal as
-// "virtual archived" records so that contracts with expired dates appear
-// under 📦 Archived Contract Records even before they are formally archived
-// into the archived_contracts table.
+// Include expired contracts in the Archived Contracts modal only after the
+// 7-day grace period (i.e. when they would be auto-archived). Contracts
+// still within the 7 days show only under "Expired Contracts", not in Archived.
 if ($priority_result && mysqli_num_rows($priority_result) > 0) {
     while ($expired_row = mysqli_fetch_assoc($priority_result)) {
+        $endDate = $expired_row['contract_end_date'] ?? null;
+        $status = $expired_row['contract_status'] ?? 'expired';
+        $pending = getPendingArchiveStatus($endDate, $status);
+        // Only add to archived list when past the 7-day grace period
+        if ($pending['is_pending']) {
+            continue;
+        }
         $archived_contracts[] = [
             'plot_id'              => $expired_row['plot_id'] ?? null,
             'record_id'            => $expired_row['record_id'] ?? null,
@@ -403,20 +432,13 @@ if ($priority_result && mysqli_num_rows($priority_result) > 0) {
             'date_of_death'        => $expired_row['date_of_death'] ?? null,
             'address'              => $expired_row['address'] ?? null,
             'next_of_kin'          => $expired_row['next_of_kin'] ?? null,
-            // These fields are specific to records that actually live in
-            // archived_contracts; for "virtual" records we leave them empty.
             'archived_at'          => null,
             'archived_by'          => null,
             'reason'               => 'Expired contract (auto-listed)',
         ];
     }
 
-    // Reset pointer so later sections (e.g. Expired Contracts panel) can
-    // iterate over $priority_result from the beginning again.
     mysqli_data_seek($priority_result, 0);
-
-    // Update total count used by the Archived Contracts modal to reflect
-    // both real archived records and these virtual expired ones.
     $archived_total_count = count($archived_contracts);
 }
 
@@ -620,34 +642,6 @@ function deriveRenewalReminderDate($renewalRaw, $endRaw, $startRaw, $burialRaw) 
         return $reminder->format('M d, Y');
     } catch (Exception $e) {
         return null;
-    }
-}
-/**
- * Check if a contract is expired but within the 7-day grace period before archiving
- * @param string|null $endDate Contract end date
- * @param string|null $status Current contract status
- * @return array{is_pending: bool, days_remaining: int|null} Returns array with is_pending flag and days remaining until archive
- */
-function getPendingArchiveStatus($endDate, $status) {
-    if (!$endDate || $endDate === '0000-00-00' || $status !== 'expired') {
-        return ['is_pending' => false, 'days_remaining' => null];
-    }
-    
-    try {
-        $end = new DateTime($endDate);
-        $today = new DateTime();
-        $archiveDate = clone $end;
-        $archiveDate->modify('+7 days');
-        
-        // If today is before the archive date (within 7 days of expiry), it's pending
-        if ($today < $archiveDate && $today >= $end) {
-            $daysRemaining = $today->diff($archiveDate)->days;
-            return ['is_pending' => true, 'days_remaining' => $daysRemaining];
-        }
-        
-        return ['is_pending' => false, 'days_remaining' => null];
-    } catch (Exception $e) {
-        return ['is_pending' => false, 'days_remaining' => null];
     }
 }
 ?>
@@ -970,6 +964,9 @@ function getPendingArchiveStatus($endDate, $status) {
         .priority-item-meta {
             font-size: 0.8rem;
             color: var(--gray-700);
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            min-width: 0; /* Allow flex items to shrink below content size */
         }
         .priority-reminder-date {
             font-weight: 600;
@@ -985,7 +982,19 @@ function getPendingArchiveStatus($endDate, $status) {
         }
 
         /* Status */
-        .contract-status { display: inline-block; padding: 0.375rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+        .contract-status { 
+            display: inline-block; 
+            padding: 0.375rem 0.75rem; 
+            border-radius: 9999px; 
+            font-size: 0.75rem; 
+            font-weight: 600; 
+            text-transform: uppercase; 
+            letter-spacing: 0.05em; 
+            max-width: 100%;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            white-space: normal;
+        }
         .contract-status.active { background: rgba(16, 185, 129, 0.1); color: var(--success-color); }
         .contract-status.expired { background: rgba(239, 68, 68, 0.1); color: var(--danger-color); }
         .contract-status.expired.pending-archive { background: rgba(245, 158, 11, 0.15); color: #d97706; }
@@ -1197,6 +1206,10 @@ function getPendingArchiveStatus($endDate, $status) {
         }
         
         /* Contract details modal specific fixes */
+        #contractViewModal {
+            z-index: 1055 !important;
+        }
+        
         #contractViewModal .modal-dialog {
             margin: 1rem auto;
             position: fixed;
@@ -1204,12 +1217,15 @@ function getPendingArchiveStatus($endDate, $status) {
             left: 50%;
             transform: translate(-50%, -50%);
             max-width: 800px;
+            z-index: 1055 !important;
         }
         
         #contractViewModal .modal-content {
             display: flex;
             flex-direction: column;
             overflow: visible;
+            position: relative;
+            z-index: 1055 !important;
         }
         
         #contractViewModal .modal-body {
@@ -1234,6 +1250,12 @@ function getPendingArchiveStatus($endDate, $status) {
         /* Ensure modal stays fixed and centered */
         #contractViewModal.show .modal-dialog {
             position: fixed !important;
+            z-index: 1055 !important;
+        }
+        
+        /* Ensure modal backdrop is below modal but above other content */
+        #contractViewModal + .modal-backdrop {
+            z-index: 1050 !important;
         }
         
         /* Delete Confirmation Modal Styles */
@@ -2633,7 +2655,7 @@ function getPendingArchiveStatus($endDate, $status) {
                             <p style="margin: 0 0 0.5rem 0; font-size: 0.85rem; color: var(--gray-600);">Contract Status</p>
                             <span class="contract-status ${statusClass}" style="display: inline-block;">
                                 ${statusText}
-                                ${pendingArchiveInfo ? `<span style="display: block; font-size: 0.65rem; margin-top: 0.25rem; font-weight: 500;">(Pending Archive - ${pendingArchiveInfo.daysRemaining} day${pendingArchiveInfo.daysRemaining !== 1 ? 's' : ''} left)</span>` : ''}
+                                ${pendingArchiveInfo ? `<span style="display: block; font-size: 0.65rem; margin-top: 0.25rem; font-weight: 500; word-wrap: break-word; overflow-wrap: break-word; white-space: normal;">(Pending Archive - ${pendingArchiveInfo.daysRemaining} day${pendingArchiveInfo.daysRemaining !== 1 ? 's' : ''} left)</span>` : ''}
                             </span>
                         </div>
                         ${contractYears !== null ? `
