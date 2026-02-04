@@ -1550,9 +1550,10 @@ while ($row = mysqli_fetch_assoc($result)) {
                                 };
                             });
 
-                            // Remove modal from DOM after it's hidden
+                            // Remove modal from DOM after it's hidden; ensure flag is reset when user closes modal
                             modalEl.addEventListener('hidden.bs.modal', function () {
                                 modalEl.remove();
+                                window.isOpeningDateModal = false;
                             });
                         })
                         .catch(error => {

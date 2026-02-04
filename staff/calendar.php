@@ -1171,9 +1171,12 @@ $events = [];
                             
                             modalEl.addEventListener('hidden.bs.modal', function () {
                                 document.body.style.paddingRight = '';
+                                isOpeningDateModal = false;
                             });
                             
                             modal.show();
+                            // Reset flag so next date click can open modal again
+                            isOpeningDateModal = false;
 
                             // Add event listeners for delete buttons
                             modalEl.querySelectorAll('.delete-event').forEach(btn => {
@@ -1200,9 +1203,10 @@ $events = [];
                                 };
                             });
 
-                            // Remove modal from DOM after it's hidden
+                            // Remove modal from DOM after it's hidden; ensure flag is reset when user closes modal
                             modalEl.addEventListener('hidden.bs.modal', function () {
                                 modalEl.remove();
+                                isOpeningDateModal = false;
                             });
                         })
                         .catch(error => {
