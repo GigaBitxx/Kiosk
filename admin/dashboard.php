@@ -742,6 +742,197 @@ $timeline_type_icons = [
         .error-notification {
             background: linear-gradient(135deg, #e74c3c, #c0392b);
         }
+        /* Facebook-style Notification System */
+        .notification-container {
+            position: fixed;
+            top: 20px;
+            right: 24px;
+            z-index: 1500;
+        }
+        .notification-bell {
+            position: relative;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .notification-bell:hover {
+            background: #f5f5f5;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .notification-bell i {
+            font-size: 20px;
+            color: #1d2a38;
+        }
+        .notification-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #e74c3c;
+            color: #fff;
+            border-radius: 10px;
+            min-width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 0 5px;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .notification-badge.hidden {
+            display: none;
+        }
+        .notification-dropdown {
+            position: absolute;
+            top: 50px;
+            right: 0;
+            width: 380px;
+            max-width: calc(100vw - 48px);
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            display: none;
+            flex-direction: column;
+            max-height: 600px;
+            overflow: hidden;
+        }
+        .notification-dropdown.show {
+            display: flex;
+        }
+        .notification-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8f9fa;
+        }
+        .notification-header h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 700;
+            color: #1d2a38;
+        }
+        .notification-header .mark-all-read {
+            background: none;
+            border: none;
+            color: #2b4c7e;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        .notification-header .mark-all-read:hover {
+            background: #e0e7ff;
+        }
+        .notification-list {
+            flex: 1;
+            overflow-y: auto;
+            max-height: 500px;
+        }
+        .notification-item {
+            padding: 16px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            gap: 12px;
+            position: relative;
+        }
+        .notification-item:hover {
+            background: #f8f9fa;
+        }
+        .notification-item.unread {
+            background: #f0f7ff;
+        }
+        .notification-item.unread::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: #2b4c7e;
+        }
+        .notification-icon {
+            flex-shrink: 0;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e0e7ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #2b4c7e;
+            font-size: 18px;
+        }
+        .notification-content {
+            flex: 1;
+            min-width: 0;
+        }
+        .notification-message {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1d2a38;
+            margin-bottom: 4px;
+            line-height: 1.4;
+        }
+        .notification-details {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        .notification-time {
+            font-size: 11px;
+            color: #999;
+        }
+        .notification-empty {
+            padding: 40px 20px;
+            text-align: center;
+            color: #999;
+        }
+        .notification-empty i {
+            font-size: 48px;
+            color: #ddd;
+            margin-bottom: 12px;
+        }
+        .notification-footer {
+            padding: 12px 20px;
+            border-top: 1px solid #e0e0e0;
+            text-align: center;
+        }
+        .notification-footer a {
+            color: #2b4c7e;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .notification-footer a:hover {
+            text-decoration: underline;
+        }
+        @media (max-width: 768px) {
+            .notification-container {
+                top: 16px;
+                right: 16px;
+            }
+            .notification-dropdown {
+                width: calc(100vw - 32px);
+                right: -16px;
+            }
+        }
         /* View Feedback Modal Styling */
         #viewFeedbackModal .modal-backdrop {
             background-color: rgba(0, 0, 0, 0.5);
@@ -938,6 +1129,30 @@ $timeline_type_icons = [
 <body>
 <div class="layout">
     <?php include 'includes/sidebar.php'; ?>
+    
+    <!-- Notification Bell -->
+    <div class="notification-container">
+        <div class="notification-bell" id="notificationBell" onclick="toggleNotificationDropdown()">
+            <i class='bx bx-bell'></i>
+            <span class="notification-badge hidden" id="notificationBadge">0</span>
+        </div>
+        <div class="notification-dropdown" id="notificationDropdown">
+            <div class="notification-header">
+                <h3>Notifications</h3>
+                <button class="mark-all-read" onclick="markAllNotificationsRead()" id="markAllReadBtn" style="display: none;">Mark all as read</button>
+            </div>
+            <div class="notification-list" id="notificationList">
+                <div class="notification-empty">
+                    <i class='bx bx-bell-off'></i>
+                    <p>No new notifications</p>
+                </div>
+            </div>
+            <div class="notification-footer">
+                <a href="deceased_records.php">View all exhumation requests</a>
+            </div>
+        </div>
+    </div>
+    
     <div class="main">
         <div class="dashboard-container">
             <div class="dashboard-left">
@@ -1416,7 +1631,276 @@ $timeline_type_icons = [
 
         showNotification(successNotification);
         showNotification(errorNotification);
+        
+        // Initialize real-time notification system
+        initNotificationSystem();
     });
+    
+    // Real-time Notification System
+    let notificationCheckInterval = null;
+    let lastCheckTimestamp = null;
+    let seenNotificationIds = new Set();
+    
+    function initNotificationSystem() {
+        // Load existing notifications on page load
+        loadAllNotifications();
+        
+        // Then check for new notifications every 5 seconds
+        notificationCheckInterval = setInterval(checkForNotifications, 5000);
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const container = document.getElementById('notificationBell');
+            const dropdown = document.getElementById('notificationDropdown');
+            if (container && dropdown && !container.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
+    }
+    
+    function loadAllNotifications() {
+        fetch('../api/get_exhumation_notifications.php')
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error('Error loading notifications:', data.error);
+                    return;
+                }
+                
+                const notifications = data.notifications || [];
+                const count = data.count || 0;
+                
+                // Update badge
+                updateNotificationBadge(count);
+                
+                // Load all notifications into dropdown
+                if (notifications.length > 0) {
+                    const list = document.getElementById('notificationList');
+                    if (list) {
+                        // Remove empty state
+                        const emptyState = list.querySelector('.notification-empty');
+                        if (emptyState) {
+                            emptyState.remove();
+                        }
+                        
+                        // Show mark all as read button
+                        const markAllBtn = document.getElementById('markAllReadBtn');
+                        if (markAllBtn) {
+                            markAllBtn.style.display = 'block';
+                        }
+                        
+                        // Add all notifications
+                        notifications.forEach(notification => {
+                            seenNotificationIds.add(notification.id);
+                            const item = createNotificationItem(notification);
+                            list.appendChild(item);
+                        });
+                    }
+                }
+                
+                // Set initial timestamp
+                if (data.timestamp) {
+                    lastCheckTimestamp = data.timestamp;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading notifications:', error);
+            });
+    }
+    
+    function toggleNotificationDropdown() {
+        const dropdown = document.getElementById('notificationDropdown');
+        if (dropdown) {
+            dropdown.classList.toggle('show');
+        }
+    }
+    
+    function checkForNotifications() {
+        const url = '../api/get_exhumation_notifications.php';
+        const params = lastCheckTimestamp ? `?last_check=${encodeURIComponent(lastCheckTimestamp)}` : '';
+        
+        fetch(url + params)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error('Error fetching notifications:', data.error);
+                    return;
+                }
+                
+                const notifications = data.notifications || [];
+                const count = data.count || 0;
+                
+                // Update badge
+                updateNotificationBadge(count);
+                
+                // If there are new notifications, add them to the list
+                if (notifications.length > 0) {
+                    addNotificationsToDropdown(notifications);
+                    
+                    // Show browser notification if page is not focused
+                    if (document.hidden && notifications.length > 0) {
+                        showBrowserNotification(notifications[0]);
+                    }
+                }
+                
+                // Update last check timestamp
+                if (data.timestamp) {
+                    lastCheckTimestamp = data.timestamp;
+                }
+            })
+            .catch(error => {
+                console.error('Error checking notifications:', error);
+            });
+    }
+    
+    function updateNotificationBadge(count) {
+        const badge = document.getElementById('notificationBadge');
+        if (badge) {
+            if (count > 0) {
+                badge.textContent = count > 99 ? '99+' : count;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+    }
+    
+    function addNotificationsToDropdown(notifications) {
+        const list = document.getElementById('notificationList');
+        if (!list) return;
+        
+        // Remove empty state if it exists
+        const emptyState = list.querySelector('.notification-empty');
+        if (emptyState) {
+            emptyState.remove();
+        }
+        
+        // Show mark all as read button
+        const markAllBtn = document.getElementById('markAllReadBtn');
+        if (markAllBtn) {
+            markAllBtn.style.display = 'block';
+        }
+        
+        // Add new notifications to the top
+        notifications.forEach(notification => {
+            // Skip if we've already seen this notification or if it already exists in DOM
+            if (seenNotificationIds.has(notification.id)) {
+                return;
+            }
+            
+            // Check if notification already exists in DOM
+            const existingItem = list.querySelector(`[data-notification-id="${notification.id}"]`);
+            if (existingItem) {
+                seenNotificationIds.add(notification.id);
+                return;
+            }
+            
+            seenNotificationIds.add(notification.id);
+            
+            const item = createNotificationItem(notification);
+            list.insertBefore(item, list.firstChild);
+        });
+    }
+    
+    function createNotificationItem(notification) {
+        const item = document.createElement('div');
+        item.className = 'notification-item unread';
+        item.setAttribute('data-notification-id', notification.id);
+        
+        const timeAgo = getTimeAgo(notification.created_at);
+        
+        item.innerHTML = `
+            <div class="notification-icon">
+                <i class='bx bx-box'></i>
+            </div>
+            <div class="notification-content" onclick="viewExhumationRequest(${notification.request_id})">
+                <div class="notification-message">${escapeHtml(notification.message)}</div>
+                <div class="notification-details">${escapeHtml(notification.details)}</div>
+                <div class="notification-time">${timeAgo} • Requested by ${escapeHtml(notification.requested_by)}</div>
+            </div>
+        `;
+        
+        // Mark as read when clicked
+        item.addEventListener('click', function() {
+            markNotificationAsRead(notification.id);
+        });
+        
+        return item;
+    }
+    
+    function markNotificationAsRead(notificationId) {
+        const item = document.querySelector(`[data-notification-id="${notificationId}"]`);
+        if (item) {
+            item.classList.remove('unread');
+        }
+        
+        // Update badge count
+        const unreadItems = document.querySelectorAll('.notification-item.unread');
+        updateNotificationBadge(unreadItems.length);
+    }
+    
+    function markAllNotificationsRead() {
+        const unreadItems = document.querySelectorAll('.notification-item.unread');
+        unreadItems.forEach(item => {
+            item.classList.remove('unread');
+        });
+        
+        updateNotificationBadge(0);
+        
+        const markAllBtn = document.getElementById('markAllReadBtn');
+        if (markAllBtn) {
+            markAllBtn.style.display = 'none';
+        }
+    }
+    
+    function viewExhumationRequest(requestId) {
+        // Redirect to deceased_records page with the request highlighted
+        window.location.href = `deceased_records.php?highlight_request=${requestId}`;
+    }
+    
+    function getTimeAgo(timestamp) {
+        const now = new Date();
+        const time = new Date(timestamp);
+        const diffMs = now - time;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+        
+        if (diffMins < 1) {
+            return 'Just now';
+        } else if (diffMins < 60) {
+            return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+        } else if (diffHours < 24) {
+            return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+        } else if (diffDays < 7) {
+            return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+        } else {
+            return time.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+    }
+    
+    function showBrowserNotification(notification) {
+        // Request permission if not granted
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+        
+        if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('New Exhumation Request', {
+                body: notification.message + ' - ' + notification.details,
+                icon: '../assets/images/tmmp-logo.png',
+                tag: 'exhumation-' + notification.id
+            });
+        }
+    }
+    
+    // Request notification permission on page load
+    if ('Notification' in window && Notification.permission === 'default') {
+        // Don't request immediately, wait a bit
+        setTimeout(() => {
+            Notification.requestPermission();
+        }, 2000);
+    }
     </script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script>

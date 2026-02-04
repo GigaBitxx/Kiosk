@@ -334,7 +334,10 @@ if ($exhumation_enabled) {
                     </thead>
                     <tbody>
                         <?php foreach ($pending_exhumations as $req): ?>
-                        <tr>
+                        <tr id="exhumation-request-<?php echo (int)$req['request_id']; ?>" 
+                            <?php if (isset($_GET['highlight_request']) && (int)$_GET['highlight_request'] === (int)$req['request_id']): ?>
+                                style="background-color: #fff3cd; border-left: 4px solid #ffc107;"
+                            <?php endif; ?>>
                             <td><?php echo htmlspecialchars($req['display_deceased_name'] ?? $req['deceased_name'] ?? 'Unknown'); ?></td>
                             <td>
                                 <?php
@@ -452,6 +455,22 @@ document.addEventListener('DOMContentLoaded', function() {
             showNotification(errorNotification, message);
         }
     }
+    
+    // Scroll to highlighted exhumation request if present
+    <?php if (isset($_GET['highlight_request'])): ?>
+    const highlightRequestId = <?php echo (int)$_GET['highlight_request']; ?>;
+    const highlightedRow = document.getElementById('exhumation-request-' + highlightRequestId);
+    if (highlightedRow) {
+        setTimeout(() => {
+            highlightedRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Remove highlight after 5 seconds
+            setTimeout(() => {
+                highlightedRow.style.backgroundColor = '';
+                highlightedRow.style.borderLeft = '';
+            }, 5000);
+        }, 300);
+    }
+    <?php endif; ?>
 });
 </script>
 </body>
