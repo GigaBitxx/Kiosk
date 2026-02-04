@@ -139,10 +139,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         continue; // Skip if level exists
                     }
                     
-                    $query = "INSERT INTO plots (`section_id`, `row_number`, `plot_number`, `latitude`, `longitude`, `status`, `level_number`, `max_levels`, `is_multi_level`) 
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    $query = "INSERT INTO plots (`section_id`, `section`, `row_number`, `plot_number`, `latitude`, `longitude`, `status`, `level_number`, `max_levels`, `is_multi_level`) 
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                     $stmt = mysqli_prepare($conn, $query);
-                    mysqli_stmt_bind_param($stmt, "iisddsiii", $section_id, $row_number, $plot_number, $lat, $lng, $status, $level, $stored_max_levels, $is_multi_level);
+                    mysqli_stmt_bind_param($stmt, "isisddsiii", $section_id, $section_name, $row_number, $plot_number, $lat, $lng, $status, $level, $stored_max_levels, $is_multi_level);
                     
                     if (mysqli_stmt_execute($stmt)) {
                         $success_count++;
@@ -175,10 +175,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     $level = 1;
                     $stored_max_levels = 1;
                     
-                    $query = "INSERT INTO plots (`section_id`, `row_number`, `plot_number`, `latitude`, `longitude`, `status`, `level_number`, `max_levels`, `is_multi_level`) 
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    $query = "INSERT INTO plots (`section_id`, `section`, `row_number`, `plot_number`, `latitude`, `longitude`, `status`, `level_number`, `max_levels`, `is_multi_level`) 
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                     $stmt = mysqli_prepare($conn, $query);
-                    mysqli_stmt_bind_param($stmt, "iisddsiii", $section_id, $row_number, $plot_number, $lat, $lng, $status, $level, $stored_max_levels, $is_multi_level);
+                    mysqli_stmt_bind_param($stmt, "isisddsiii", $section_id, $section_name, $row_number, $plot_number, $lat, $lng, $status, $level, $stored_max_levels, $is_multi_level);
                     
                     if (mysqli_stmt_execute($stmt)) {
                         $success_count = 1;
@@ -490,10 +490,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['action'])) {
                                 continue; // Skip this level if it already exists
                             }
                             
-                            $query = "INSERT INTO plots (`section_id`, `row_number`, `plot_number`, `latitude`, `longitude`, `status`, `level_number`, `max_levels`, `is_multi_level`) 
-                                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                            $query = "INSERT INTO plots (`section_id`, `section`, `row_number`, `plot_number`, `latitude`, `longitude`, `status`, `level_number`, `max_levels`, `is_multi_level`) 
+                                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                             $stmt = mysqli_prepare($conn, $query);
-                            mysqli_stmt_bind_param($stmt, "iisddsiii", $section_id, $row, $plot_number, $lat, $lng, $status, $level, $stored_max_levels, $is_multi_level);
+                            mysqli_stmt_bind_param($stmt, "isisddsiii", $section_id, $section_name, $row, $plot_number, $lat, $lng, $status, $level, $stored_max_levels, $is_multi_level);
                             
                             if (mysqli_stmt_execute($stmt)) {
                                 $success_count++;
@@ -507,10 +507,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['action'])) {
                         $level = 1; // Ground level only
                         $stored_max_levels = 1;
                         
-                        $query = "INSERT INTO plots (`section_id`, `row_number`, `plot_number`, `latitude`, `longitude`, `status`, `level_number`, `max_levels`, `is_multi_level`) 
-                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                        $query = "INSERT INTO plots (`section_id`, `section`, `row_number`, `plot_number`, `latitude`, `longitude`, `status`, `level_number`, `max_levels`, `is_multi_level`) 
+                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                         $stmt = mysqli_prepare($conn, $query);
-                        mysqli_stmt_bind_param($stmt, "iisddsiii", $section_id, $row, $plot_number, $lat, $lng, $status, $level, $stored_max_levels, $is_multi_level);
+                        mysqli_stmt_bind_param($stmt, "isisddsiii", $section_id, $section_name, $row, $plot_number, $lat, $lng, $status, $level, $stored_max_levels, $is_multi_level);
                         
                         if (mysqli_stmt_execute($stmt)) {
                             $success_count++;
