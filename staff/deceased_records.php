@@ -377,8 +377,15 @@ $sections_with_records_query = "SELECT s.section_id, s.section_name
                                ORDER BY s.section_name";
 $sections_with_records_result = mysqli_query($conn, $sections_with_records_query);
 
-// Fetch all sections for delete filters
-$all_sections_query = "SELECT section_id, section_name FROM sections ORDER BY section_name";
+// Fetch sections for delete filters (only sections that actually have deceased records)
+// This keeps the section filter in sync with current data and avoids showing sections
+// that were removed from the system or have no associated records.
+$all_sections_query = "SELECT s.section_id, s.section_name
+                       FROM sections s
+                       JOIN plots p ON p.section_id = s.section_id
+                       JOIN deceased_records d ON d.plot_id = p.plot_id
+                       GROUP BY s.section_id, s.section_name
+                       ORDER BY s.section_name";
 $all_sections_result = mysqli_query($conn, $all_sections_query);
 
 // Handle bulk import
