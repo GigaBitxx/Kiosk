@@ -1384,7 +1384,7 @@ if ($result) {
     <div class="controls">
         <button type="button" class="btn btn-secondary" onclick="clearSearch()" title="Clear search">Clear</button>
         <div class="search-container">
-            <input type="text" id="searchDeceased" class="form-control" placeholder="Search Plot (ARIES-1-1) or Deceased Name" onkeypress="if(event.key === 'Enter') { event.preventDefault(); searchDeceased(); }">
+            <input type="text" id="searchDeceased" class="form-control" placeholder="Search Name or Plot" onkeypress="if(event.key === 'Enter') { event.preventDefault(); searchDeceased(); }">
             <button type="button" class="btn btn-primary" onclick="searchDeceased()">Search</button>
         </div>
         <div class="control-buttons">
