@@ -1050,14 +1050,20 @@ if ($_POST) {
         return `${month} ${day} ${year}`;
     }
 
-    // Auto-calculate end date, renewal reminder, and update burial date when start date changes
+    // Auto-calculate end date, renewal reminder, and update displays when start date changes
     if (contractStartInput) {
         contractStartInput.addEventListener('change', function () {
-            if (!this.value) {
-                return;
+            // Use Flatpickr-selected date when available, otherwise parse the raw value
+            let startDate = null;
+            if (this._flatpickr && this._flatpickr.selectedDates && this._flatpickr.selectedDates.length > 0) {
+                startDate = this._flatpickr.selectedDates[0];
+            } else if (this.value) {
+                startDate = new Date(this.value + 'T00:00:00');
             }
 
-            const startDate = new Date(this.value + 'T00:00:00');
+            if (!startDate || isNaN(startDate.getTime())) {
+                return;
+            }
             
             // Calculate end date (start date + 5 years)
             const endDate = new Date(startDate);
@@ -1067,15 +1073,23 @@ if ($_POST) {
             const reminderDate = new Date(endDate);
             reminderDate.setDate(reminderDate.getDate() - 30);
             
-            // Update the fields
+            // Update the end date field (respect Flatpickr if present)
             if (contractEndInput) {
-                contractEndInput.value = formatDateForInput(endDate);
-                // Trigger change event to update contract status
-                contractEndInput.dispatchEvent(new Event('change'));
+                if (contractEndInput._flatpickr) {
+                    contractEndInput._flatpickr.setDate(endDate, true);
+                } else {
+                    contractEndInput.value = formatDateForInput(endDate);
+                    contractEndInput.dispatchEvent(new Event('change'));
+                }
             }
             
+            // Update the renewal reminder field (respect Flatpickr if present)
             if (renewalReminderInput) {
-                renewalReminderInput.value = formatDateForInput(reminderDate);
+                if (renewalReminderInput._flatpickr) {
+                    renewalReminderInput._flatpickr.setDate(reminderDate, true);
+                } else {
+                    renewalReminderInput.value = formatDateForInput(reminderDate);
+                }
             }
             
             // Update burial date display to match contract start date
