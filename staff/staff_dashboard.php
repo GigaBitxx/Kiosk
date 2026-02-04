@@ -57,6 +57,7 @@ if (mysqli_num_rows($check_table) > 0) {
 // Get assistance requests from kiosk users (only from today - resets daily)
 $assistance_requests = [];
 $archived_requests = [];
+$assistance_notification_message = '';
 $check_assistance_table = mysqli_query($conn, "SHOW TABLES LIKE 'assistance_requests'");
 if (mysqli_num_rows($check_assistance_table) > 0) {
     // Ensure archived column exists for assistance_requests (for soft-archiving)
@@ -96,7 +97,13 @@ if (mysqli_num_rows($check_assistance_table) > 0) {
             );
             if ($update_stmt) {
                 mysqli_stmt_bind_param($update_stmt, "sii", $new_status, $archive_flag, $request_id);
-                mysqli_stmt_execute($update_stmt);
+                if (mysqli_stmt_execute($update_stmt)) {
+                    if ($action === 'mark_done') {
+                        $assistance_notification_message = 'Assistance request marked as done.';
+                    } elseif ($action === 'archive') {
+                        $assistance_notification_message = 'Assistance request archived. It has been moved out of today\'s active list.';
+                    }
+                }
                 mysqli_stmt_close($update_stmt);
             }
         }
@@ -344,10 +351,22 @@ $timeline_type_icons = [
             justify-content: center;
             border-radius: 50%;
             transition: background 0.2s ease, transform 0.2s ease;
+            position: relative;
         }
         .help-icon-btn:hover {
             background: #f1f5f9;
             transform: scale(1.1);
+        }
+        .help-icon-btn .assistance-indicator {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            background: #dc2626;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 0 2px rgba(248, 250, 252, 0.9);
         }
         /* Announcement Help Modal Styles */
         .announcement-help-modal-overlay {
@@ -1310,6 +1329,51 @@ $timeline_type_icons = [
             }
         }
 
+        /* System-style notification bubble (top-center) */
+        .notification-bubble {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            padding: 16px 20px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+            z-index: 9999;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            max-width: 400px;
+            word-wrap: break-word;
+        }
+        .notification-bubble.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+        .notification-bubble.hide {
+            transform: translateX(-50%) translateY(-100px);
+            opacity: 0;
+        }
+        .success-notification {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border-left: 4px solid #065f46;
+        }
+        .error-notification {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            border-left: 4px solid #991b1b;
+        }
+        .notification-bubble i {
+            font-size: 20px;
+        }
+        .notification-bubble span {
+            display: inline-block;
+        }
+
     </style>
 </head>
 <body>
@@ -1348,6 +1412,9 @@ $timeline_type_icons = [
                         <h2 class="section-title">ANNOUNCEMENTS</h2>
                         <button class="help-icon-btn" onclick="openAnnouncementHelp()" aria-label="Help">
                             <i class='bx bx-help-circle'></i>
+                            <?php if (!empty($assistance_requests)): ?>
+                                <span class="assistance-indicator" title="There are pending assistance requests"></span>
+                            <?php endif; ?>
                         </button>
                     </div>
                     <div class="section-subtitle">Reminders / Updates</div>
@@ -1470,6 +1537,38 @@ $timeline_type_icons = [
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="../assets/js/ui-settings.js"></script>
 <script>
+    // System-style notification bubble (shared pattern with map)
+    function showAssistanceNotification(message, type = 'success') {
+        if (!message) return;
+
+        const existing = document.getElementById('assistanceNotification');
+        if (existing) {
+            existing.remove();
+        }
+
+        const notification = document.createElement('div');
+        notification.id = 'assistanceNotification';
+        notification.className = 'notification-bubble ' + (type === 'success' ? 'success-notification' : 'error-notification');
+        notification.innerHTML = `
+            <i class="bi ${type === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'}"></i>
+            <span>${message}</span>
+        `;
+
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            notification.classList.add('show');
+        }, 100);
+
+        setTimeout(() => {
+            notification.classList.remove('show');
+            notification.classList.add('hide');
+            setTimeout(() => {
+                notification.remove();
+            }, 400);
+        }, 3000);
+    }
+
     function toggleAnnouncement(index) {
         const item = document.getElementById('announcement-' + index);
         if (item) {
@@ -1501,29 +1600,34 @@ $timeline_type_icons = [
     // Toggle between active and archived assistance requests
     window.addEventListener('DOMContentLoaded', function () {
         const toggleArchivedBtn = document.getElementById('toggleArchivedBtn');
-        if (!toggleArchivedBtn) return;
+        if (toggleArchivedBtn) {
+            toggleArchivedBtn.addEventListener('click', function () {
+                const activeContainer = document.getElementById('activeRequestsContainer');
+                const archivedContainer = document.getElementById('archivedRequestsContainer');
+                const icon = this.querySelector('i');
 
-        toggleArchivedBtn.addEventListener('click', function () {
-            const activeContainer = document.getElementById('activeRequestsContainer');
-            const archivedContainer = document.getElementById('archivedRequestsContainer');
-            const icon = this.querySelector('i');
+                if (!activeContainer || !archivedContainer || !icon) return;
 
-            if (!activeContainer || !archivedContainer || !icon) return;
+                const showingArchived = archivedContainer.style.display === 'block';
 
-            const showingArchived = archivedContainer.style.display === 'block';
+                if (showingArchived) {
+                    archivedContainer.style.display = 'none';
+                    activeContainer.style.display = 'block';
+                    icon.className = 'bx bx-archive-in';
+                    this.title = 'View archived requests';
+                } else {
+                    activeContainer.style.display = 'none';
+                    archivedContainer.style.display = 'block';
+                    icon.className = 'bx bx-list-ul';
+                    this.title = 'View active requests';
+                }
+            });
+        }
 
-            if (showingArchived) {
-                archivedContainer.style.display = 'none';
-                activeContainer.style.display = 'block';
-                icon.className = 'bx bx-archive-in';
-                this.title = 'View archived requests';
-            } else {
-                activeContainer.style.display = 'none';
-                archivedContainer.style.display = 'block';
-                icon.className = 'bx bx-list-ul';
-                this.title = 'View active requests';
-            }
-        });
+        // Trigger notification bubble after assistance actions
+        <?php if (!empty($assistance_notification_message)): ?>
+            showAssistanceNotification("<?php echo addslashes($assistance_notification_message); ?>", 'success');
+        <?php endif; ?>
     });
 </script>
     <!-- Announcement Help Modal -->
@@ -1618,7 +1722,7 @@ $timeline_type_icons = [
                                             </button>
                                         </form>
                                     <?php endif; ?>
-                                    <form method="POST" action="" onsubmit="return confirm('Are you sure you want to archive this request? It will be moved out of today\'s active list.');">
+                                    <form method="POST" action="" onsubmit="return confirm('Are you sure you want to archive this assistance request? It will be moved out of today\\'s active list.');">
                                         <input type="hidden" name="request_id" value="<?php echo (int) $request['request_id']; ?>">
                                         <input type="hidden" name="assistance_action" value="archive">
                                         <button type="submit" class="assistance-action-btn archive" title="Archive request">
