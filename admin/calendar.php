@@ -1300,6 +1300,9 @@ while ($row = mysqli_fetch_assoc($result)) {
             }
         }, { passive: false });
 
+        // Flag to prevent multiple simultaneous modal opens
+        window.isOpeningDateModal = false;
+
         document.addEventListener('DOMContentLoaded', function() {
             const currentUserId = <?php echo $_SESSION['user_id']; ?>;
             var calendarEl = document.getElementById('calendar');
@@ -1394,6 +1397,25 @@ while ($row = mysqli_fetch_assoc($result)) {
                     }
                 },
                 dateClick: function(info) {
+                    // Prevent multiple simultaneous opens - check flag first
+                    if (window.isOpeningDateModal) {
+                        return;
+                    }
+                    
+                    // Check if a modal is already open or being opened
+                    const existingDateModalEl = document.getElementById('dateEventsModal');
+                    if (existingDateModalEl) {
+                        const existingModal = bootstrap.Modal.getInstance(existingDateModalEl);
+                        if (existingModal && existingModal._isShown) {
+                            return; // Modal is already open, ignore click
+                        }
+                        // Remove stale modal element
+                        existingDateModalEl.remove();
+                    }
+                    
+                    // Set flag to prevent multiple opens
+                    window.isOpeningDateModal = true;
+                    
                     // Determine if the clicked date is in the past (based on date only)
                     const clickedDate = new Date(info.dateStr + 'T00:00:00');
                     const today = new Date();
@@ -1485,6 +1507,9 @@ while ($row = mysqli_fetch_assoc($result)) {
                             // Initialize Bootstrap modal
                             const modal = new bootstrap.Modal(modalEl);
                             modal.show();
+                            
+                            // Reset flag after modal is shown
+                            window.isOpeningDateModal = false;
 
                             // Add event listeners for delete buttons
                             modalEl.querySelectorAll('.delete-event').forEach(btn => {
@@ -1533,6 +1558,8 @@ while ($row = mysqli_fetch_assoc($result)) {
                         .catch(error => {
                             console.error('Error:', error);
                             alert('Error fetching events. Please try again.');
+                            // Reset flag on error
+                            window.isOpeningDateModal = false;
                         });
                 },
                 eventClick: function(info) {

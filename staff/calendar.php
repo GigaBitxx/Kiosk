@@ -1044,8 +1044,16 @@ $events = [];
             return text ? text.replace(/[&<>"']/g, m => map[m]) : '';
         }
         
+        // Flag to prevent multiple simultaneous modal opens
+        let isOpeningDateModal = false;
+        
         // Helper to open the "Events for this date" modal (also used after adding events)
         function openDateEventsModal(dateStr) {
+            // Prevent multiple simultaneous opens
+            if (isOpeningDateModal) {
+                return;
+            }
+            
             // If a previous dateEventsModal exists, hide and remove it to avoid duplicates
             const existingDateModalEl = document.getElementById('dateEventsModal');
             if (existingDateModalEl) {
@@ -1055,6 +1063,9 @@ $events = [];
                 }
                 existingDateModalEl.remove();
             }
+            
+            // Set flag to prevent multiple opens
+            isOpeningDateModal = true;
 
             // Determine if the clicked date is in the past (based on date only)
             const clickedDate = new Date(dateStr + 'T00:00:00');
@@ -1197,6 +1208,8 @@ $events = [];
                         .catch(error => {
                             console.error('Error:', error);
                             alert('Error fetching events. Please try again.');
+                            // Reset flag on error
+                            isOpeningDateModal = false;
                         });
         }
 
