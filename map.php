@@ -1471,9 +1471,9 @@ if ($result) {
     <script src="assets/js/offline-map.js"></script>
     <script>
         // Keep zoom within a safe but detailed range where tiles are consistently available
-        const MIN_TILE_ZOOM = 15; // Lowered to allow more zoom out for better overview
+        const MIN_TILE_ZOOM = 14; // Allow a bit more zoom-out for better overview
         const MAX_TILE_ZOOM = 22;
-        const INITIAL_ZOOM = 19; // Increased zoom level for closer initial view
+        const INITIAL_ZOOM = 18; // Slightly more zoomed-out initial view
         
         // Helper function to get responsive zoom level
         function getResponsiveZoom(desktopZoom, mobileZoom = null) {
@@ -1484,10 +1484,15 @@ if ($result) {
         // Initialize the map with offline support (center/zoom taken from Google Maps share link)
         // Adjust initial zoom for mobile devices
         const isMobileDevice = window.innerWidth <= 768;
-        const adjustedInitialZoom = getResponsiveZoom(INITIAL_ZOOM, 18);
+        const adjustedInitialZoom = getResponsiveZoom(INITIAL_ZOOM, 17);
         const map = offlineMap.initializeMap('map', [14.2652649, 120.8651463], adjustedInitialZoom);
         map.setMinZoom(MIN_TILE_ZOOM);
         map.setMaxZoom(MAX_TILE_ZOOM);
+        
+        // Kiosk UX: ensure mouse-wheel can smoothly zoom in/out (incl. zoom-out).
+        // (Zooming out was previously limited by MIN_TILE_ZOOM.)
+        map.scrollWheelZoom.enable();
+        map.options.wheelPxPerZoomLevel = 120;
 
         // Improve touch handling for mobile zoom
         if (isMobileDevice) {
