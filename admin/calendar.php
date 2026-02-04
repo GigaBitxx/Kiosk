@@ -95,7 +95,7 @@ while ($row = mysqli_fetch_assoc($result)) {
     <link rel="shortcut icon" type="image/png" href="../assets/images/tmmp-logo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css">
     <!-- Add Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -107,53 +107,11 @@ while ($row = mysqli_fetch_assoc($result)) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <?php include 'includes/styles.php'; ?>
     <style>
-        html, body {
+        body {
             margin: 0;
             padding: 0;
-            height: 100%;
-            overflow-x: hidden;
-            overflow-y: hidden;
-        }
-        body {
-            font-family: 'Raleway', 'Helvetica Neue', sans-serif;
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: #f5f5f5;
-        }
-        .layout {
-            display: flex;
-            height: 100vh;
-            min-height: 100dvh;
-            overflow: hidden;
-        }
-        .main {
-            flex: 1;
-            padding: 48px 40px 32px 40px;
-            background: #f5f5f5;
-            margin-left: var(--sidebar-width, 220px);
-            height: 100vh;
-            min-height: 100dvh;
-            overflow: auto;
-            box-sizing: border-box;
-        }
-        .sidebar.collapsed + .main {
-            margin-left: var(--sidebar-collapsed-width, 60px);
-        }
-
-        /* On smaller screens the sidebar becomes off-canvas; allow the page to scroll normally */
-        @media (max-width: 1100px) {
-            html, body {
-                overflow-y: auto;
-            }
-            .layout {
-                height: auto;
-                min-height: 100dvh;
-                overflow: visible;
-            }
-            .main {
-                margin-left: 0;
-                height: auto;
-                min-height: 100dvh;
-                overflow: visible;
-            }
         }
         .calendar-header {
             text-align: center;
@@ -174,7 +132,8 @@ while ($row = mysqli_fetch_assoc($result)) {
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            z-index: 1;
+            /* Match staff calendar: ensure controls are fully clickable above FullCalendar content */
+            z-index: 50;
             pointer-events: none;
         }
         .calendar-actions > * {
@@ -923,7 +882,7 @@ while ($row = mysqli_fetch_assoc($result)) {
             width: 100%;
             padding: 10px 12px;
             font-size: var(--font-size-sm, 14px);
-            font-family: var(--font-primary, 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
             font-weight: var(--font-weight-normal, 400);
             line-height: 1.5;
             color: #212529;
@@ -940,34 +899,6 @@ while ($row = mysqli_fetch_assoc($result)) {
             border-color: #2b4c7e;
             outline: 0;
             box-shadow: 0 0 0 0.2rem rgba(43, 76, 126, 0.25);
-        }
-        /* Ensure select dropdowns also use Poppins */
-        select.form-control,
-        .form-select,
-        .form-select-sm {
-            font-family: var(--font-primary, 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
-        }
-        /* Ensure textareas also use Poppins */
-        textarea.form-control {
-            font-family: var(--font-primary, 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
-        }
-        /* Ensure form labels use Poppins */
-        .form-label {
-            font-family: var(--font-primary, 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
-            font-weight: var(--font-weight-medium, 500);
-            margin-bottom: 0.5rem;
-        }
-        /* Ensure buttons use Poppins to match staff calendar */
-        .btn, button {
-            font-family: var(--font-primary, 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
-        }
-        /* Ensure small text elements use Poppins */
-        .small, small {
-            font-family: var(--font-primary, 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
-        }
-        /* Ensure modal titles and text use Poppins */
-        .modal-title, .modal-body, .modal-header {
-            font-family: var(--font-primary, 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
         }
     </style>
     <style>
@@ -1045,6 +976,23 @@ while ($row = mysqli_fetch_assoc($result)) {
             height: 12px;
             border-radius: 50%;
             flex-shrink: 0;
+        }
+        /* Keep modals centered and avoid scrolling the page while they are open */
+        .modal-open {
+            overflow: hidden !important;
+            padding-right: 0 !important;
+        }
+        /* Hard-center admin Add/Edit event modals in the viewport */
+        #addEventModal .modal-dialog,
+        #editEventModal .modal-dialog {
+            /* Match staff "Add New Event" modal sizing */
+            --bs-modal-width: 400px;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            margin: 0;
+            width: calc(100% - 32px);
         }
     </style>
     <script>
@@ -1573,7 +1521,7 @@ while ($row = mysqli_fetch_assoc($result)) {
                     }
                         
                         const modalContent = `
-                            <div class="modal-dialog">
+                            <div class="modal-dialog modal-dialog-centered">
                                 <div class="modal-content">
                                     <div class="modal-header">
                                         <h5 class="modal-title">Event Details</h5>
@@ -1845,7 +1793,7 @@ while ($row = mysqli_fetch_assoc($result)) {
             modalEl.setAttribute('aria-hidden', 'true');
 
             let modalContent = `
-                <div class="modal-dialog">
+                <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
                         <div class="modal-header">
                             <h5 class="modal-title">Add New Event</h5>
@@ -1995,7 +1943,7 @@ while ($row = mysqli_fetch_assoc($result)) {
             modalEl.setAttribute('aria-hidden', 'true');
 
             let modalContent = `
-                <div class="modal-dialog">
+                <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
                         <div class="modal-header">
                             <h5 class="modal-title">Edit Event</h5>
