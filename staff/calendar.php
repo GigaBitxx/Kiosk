@@ -120,6 +120,14 @@ $events = [];
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <style>
         body { margin: 0; padding: 0; font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; }
+        /* Prevent layout shift when Bootstrap modals open */
+        body.modal-open {
+            overflow: hidden;
+            padding-right: 0 !important;
+        }
+        .layout {
+            transition: none;
+        }
         .calendar-header {
             text-align: center;
             font-size: 1.5rem;
@@ -1095,8 +1103,24 @@ $events = [];
                             modalEl.innerHTML = modalContent;
                             document.body.appendChild(modalEl);
 
-                            // Initialize Bootstrap modal
-                            const modal = new bootstrap.Modal(modalEl);
+                            // Initialize Bootstrap modal with backdrop static to prevent body shift
+                            const modal = new bootstrap.Modal(modalEl, {
+                                backdrop: true,
+                                keyboard: true
+                            });
+                            
+                            // Prevent body scroll jump when modal opens
+                            modalEl.addEventListener('show.bs.modal', function () {
+                                const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+                                if (scrollbarWidth > 0) {
+                                    document.body.style.paddingRight = scrollbarWidth + 'px';
+                                }
+                            });
+                            
+                            modalEl.addEventListener('hidden.bs.modal', function () {
+                                document.body.style.paddingRight = '';
+                            });
+                            
                             modal.show();
 
                             // Add event listeners for delete buttons
@@ -1306,7 +1330,23 @@ $events = [];
                     modalEl.innerHTML = modalContent;
                     document.body.appendChild(modalEl);
                     
-                    const modal = new bootstrap.Modal(modalEl);
+                    const modal = new bootstrap.Modal(modalEl, {
+                        backdrop: true,
+                        keyboard: true
+                    });
+                    
+                    // Prevent body scroll jump when modal opens
+                    modalEl.addEventListener('show.bs.modal', function () {
+                        const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+                        if (scrollbarWidth > 0) {
+                            document.body.style.paddingRight = scrollbarWidth + 'px';
+                        }
+                    });
+                    
+                    modalEl.addEventListener('hidden.bs.modal', function () {
+                        document.body.style.paddingRight = '';
+                    });
+                    
                     modal.show();
                     
                     // Add event listeners for edit and delete buttons
@@ -1633,7 +1673,23 @@ $events = [];
             document.body.appendChild(modalEl);
 
             // Initialize Bootstrap modal
-            const modal = new bootstrap.Modal(modalEl);
+            const modal = new bootstrap.Modal(modalEl, {
+                backdrop: true,
+                keyboard: true
+            });
+            
+            // Prevent body scroll jump when modal opens
+            modalEl.addEventListener('show.bs.modal', function () {
+                const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+                if (scrollbarWidth > 0) {
+                    document.body.style.paddingRight = scrollbarWidth + 'px';
+                }
+            });
+            
+            modalEl.addEventListener('hidden.bs.modal', function () {
+                document.body.style.paddingRight = '';
+            });
+            
             modal.show();
 
             // Set minimum date to today to prevent selecting past dates
@@ -1683,176 +1739,63 @@ $events = [];
             });
         };
 
-        // Update showAddEventForm function (match admin calendar behavior)
+        // Open the same Add Event modal used by the "+" button.
+        // When called from a date click, we also pre-fill the date picker.
         function showAddEventForm(date) {
-            // If the date events modal is open, close and remove it before opening the add form
-            const existingDateModalEl = document.getElementById('dateEventsModal');
-            if (existingDateModalEl) {
-                const existingModal = bootstrap.Modal.getInstance(existingDateModalEl);
-                if (existingModal) {
-                    existingModal.hide();
-                }
-                existingDateModalEl.remove();
-            }
-
             // Prevent adding events on past dates
             if (date) {
                 const selectedDate = new Date(date + 'T00:00:00');
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 if (selectedDate < today) {
-                    // Use the same notification style as admin calendar
                     showEventNotification('You cannot add events to past dates.', 'error');
                     return;
                 }
             }
-            const modalEl = document.createElement('div');
-            modalEl.className = 'modal fade';
-            modalEl.id = 'addEventModal';
-            modalEl.setAttribute('tabindex', '-1');
-            modalEl.setAttribute('aria-hidden', 'true');
 
-            let modalContent = `
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Add New Event</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <form id="addEventForm">
-                                <div class="mb-3">
-                                    <label for="eventTitle" class="form-label">Event Title</label>
-                                    <input type="text" class="form-control" id="eventTitle" name="title" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="eventType" class="form-label">Event Type</label>
-                                    <select class="form-control" id="eventType" name="type" required>
-                                        <option value="burial">Burial</option>
-                                        <option value="maintenance">Maintenance</option>
-                                        <option value="funeral">Funeral Service</option>
-                                        <option value="chapel">Chapel Booking</option>
-                                        <option value="appointment">Meetings/Appointments</option>
-                                        <option value="holiday">Public Events/Holidays</option>
-                                        <option value="exhumation">Exhumation</option>
-                                        <option value="cremation">Cremation</option>
-                                        <option value="other">Other</option>
-                                    </select>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="eventDate" class="form-label">Event Date</label>
-                                    <input type="text" class="form-control date-mdY" id="eventDate" name="date" value="${date}" min="" required placeholder="mm/dd/yyyy">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Event Time</label>
-                                    <div class="row">
-                                        <div class="col-6">
-                                            <label for="eventStartTime" class="form-label small">Start Time</label>
-                                            <input type="time" class="form-control" id="eventStartTime" name="start_time" required>
-                                        </div>
-                                        <div class="col-6">
-                                            <label for="eventEndTime" class="form-label small">End Time</label>
-                                            <input type="time" class="form-control" id="eventEndTime" name="end_time" required>
-                                        </div>
-                                    </div>
-                                    <small class="form-text text-muted">Set the start and end time for this event.</small>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="eventDescription" class="form-label">Description</label>
-                                    <textarea class="form-control" id="eventDescription" name="description" rows="3"></textarea>
-                                </div>
-                                <button type="submit" class="btn btn-primary w-100">Add Event</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            modalEl.innerHTML = modalContent;
-            document.body.appendChild(modalEl);
+            const openExistingAddEventModal = () => {
+                const addEventModal = document.getElementById('addEventModal');
+                if (!addEventModal) return;
 
-            // Initialize Bootstrap modal
-            const modal = new bootstrap.Modal(modalEl);
-            modal.show();
-
-            // Set minimum date to today to prevent selecting past dates
-            const today = new Date();
-            const todayFormatted = today.toISOString().split('T')[0];
-            const dateInput = modalEl.querySelector('#eventDate');
-            if (dateInput) {
-                dateInput.setAttribute('min', todayFormatted);
-            }
-
-            // Initialize Flatpickr for event date in this modal
-            if (window.flatpickr) {
-                const dateInput = modalEl.querySelector('input.date-mdY');
-                if (dateInput) {
-                    flatpickr(dateInput, {
-                        dateFormat: "Y-m-d",
-                        altInput: true,
-                        altFormat: "m/d/Y",
-                        allowInput: true,
-                        minDate: "today"
-                    });
+                // Clear any inline message state (we use toast notifications elsewhere)
+                const addEventMessage = document.getElementById('addEventMessage');
+                if (addEventMessage) {
+                    addEventMessage.classList.add('d-none');
+                    addEventMessage.classList.remove('alert-success', 'alert-danger');
+                    addEventMessage.textContent = '';
                 }
-            }
 
-            // Handle form submission
-            const form = modalEl.querySelector('#addEventForm');
-            form.onsubmit = function(e) {
-                e.preventDefault();
-                const formData = new FormData(form);
-                const eventDate = formData.get('date');
-
-                // Frontend validation: prevent creating events in the past
-                if (eventDate) {
-                    const selectedDate = new Date(eventDate + 'T00:00:00');
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    if (selectedDate < today) {
-                        showEventNotification('You cannot add events to past dates.', 'error');
-                        return;
-                    }
-                }
-                
-                const startTimeVal = formData.get('start_time');
-                const endTimeVal = formData.get('end_time');
-                // Match admin behavior: disallow identical start and end times
-                if (startTimeVal && endTimeVal && startTimeVal === endTimeVal) {
-                    showEventNotification('Start and end time cannot be the same.', 'error');
-                    return;
-                }
-                
-                fetch('add_event.php', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Show success notification
-                        showEventNotification('Event Added Successfully.', 'success');
-                        
-                        // Use the global calendar instance for consistency with admin
-                        if (window.calendar) {
-                            window.calendar.refetchEvents();
+                // Pre-fill the date and keep Flatpickr in sync (if initialized)
+                if (date) {
+                    const dateInput = document.getElementById('eventDate');
+                    if (dateInput) {
+                        if (dateInput._flatpickr) {
+                            dateInput._flatpickr.setDate(date, true);
+                        } else {
+                            dateInput.value = date;
                         }
-                        modal.hide();
-                        modalEl.remove();
-                    } else {
-                        showEventNotification('Error adding event: ' + data.message, 'error');
                     }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showEventNotification('Error adding event. Please try again.', 'error');
-                });
+                }
+
+                addEventModal.classList.add('active');
             };
 
-            // Remove modal from DOM after it's hidden
-            modalEl.addEventListener('hidden.bs.modal', function () {
-                modalEl.remove();
-            });
+            // If the Bootstrap "events for this date" modal is open, close it cleanly first
+            const existingDateModalEl = document.getElementById('dateEventsModal');
+            if (existingDateModalEl) {
+                const existingModal = bootstrap.Modal.getInstance(existingDateModalEl);
+                if (existingModal) {
+                    existingDateModalEl.addEventListener('hidden.bs.modal', function () {
+                        existingDateModalEl.remove();
+                        openExistingAddEventModal();
+                    }, { once: true });
+                    existingModal.hide();
+                    return;
+                }
+                existingDateModalEl.remove();
+            }
+
+            openExistingAddEventModal();
         }
     </script>
 </head>
@@ -2085,7 +2028,23 @@ $events = [];
         `;
 
         document.body.appendChild(modalEl);
-        const deleteModal = new bootstrap.Modal(modalEl);
+        const deleteModal = new bootstrap.Modal(modalEl, {
+            backdrop: true,
+            keyboard: true
+        });
+        
+        // Prevent body scroll jump when modal opens
+        modalEl.addEventListener('show.bs.modal', function () {
+            const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+            if (scrollbarWidth > 0) {
+                document.body.style.paddingRight = scrollbarWidth + 'px';
+            }
+        });
+        
+        modalEl.addEventListener('hidden.bs.modal', function () {
+            document.body.style.paddingRight = '';
+        });
+        
         deleteModal.show();
 
         // Handle delete confirmation
