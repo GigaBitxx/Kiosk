@@ -11,6 +11,24 @@ require_once 'config/password_reset_helper.php';
 
 define('LOGIN_ATTEMPT_WINDOW_SECONDS', 900);
 
+// If the user is already authenticated, don't show the login form.
+// This fixes "Back -> Refresh" making it look like the user is logged out.
+$is_admin_session = !empty($_SESSION['admin_session'])
+    && !empty($_SESSION['admin_user_id'])
+    && (($_SESSION['role'] ?? null) === 'admin');
+$is_staff_session = !empty($_SESSION['staff_session'])
+    && !empty($_SESSION['staff_user_id'])
+    && (($_SESSION['role'] ?? null) === 'staff');
+
+if ($is_admin_session) {
+    header('Location: admin/dashboard.php');
+    exit();
+}
+if ($is_staff_session) {
+    header('Location: staff/staff_dashboard.php');
+    exit();
+}
+
 if (!isset($_SESSION['login_attempts']) || !is_array($_SESSION['login_attempts'])) {
     $_SESSION['login_attempts'] = [];
 }
@@ -110,6 +128,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit();
             } else {
                 reset_login_attempts($normalized_username);
+                // Harden session & avoid inheriting stale timeouts
+                session_regenerate_id(true);
+                $_SESSION['last_activity'] = time();
                 $_SESSION['user_id'] = $user['user_id'];
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['role'] = $user['role'];

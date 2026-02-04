@@ -1,6 +1,11 @@
 <?php
 session_start();
 
+// Prevent cached authenticated pages from showing after back/refresh.
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
+
 // Check if admin session exists and is valid
 if (!isset($_SESSION['admin_session']) || !isset($_SESSION['admin_user_id'])) {
     header("Location: ../login.php");
