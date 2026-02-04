@@ -58,16 +58,61 @@ if (mysqli_num_rows($check_table) > 0) {
 $assistance_requests = [];
 $check_assistance_table = mysqli_query($conn, "SHOW TABLES LIKE 'assistance_requests'");
 if (mysqli_num_rows($check_assistance_table) > 0) {
+    // Ensure archived column exists for assistance_requests (for soft-archiving)
+    mysqli_query($conn, "
+        ALTER TABLE assistance_requests 
+        ADD COLUMN IF NOT EXISTS archived TINYINT(1) NOT NULL DEFAULT 0
+    ");
+
+    // Handle assistance request actions from staff (mark as done / archive)
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['assistance_action'], $_POST['request_id'])) {
+        $request_id = (int) $_POST['request_id'];
+        $action = $_POST['assistance_action'];
+
+        $new_status = null;
+        $archive_flag = 0;
+
+        if ($action === 'mark_done') {
+            // Mark request as resolved but keep it visible for the day
+            $new_status = 'resolved';
+            $archive_flag = 0;
+        } elseif ($action === 'archive') {
+            // Archive the request so it no longer appears in the active list
+            $new_status = 'closed';
+            $archive_flag = 1;
+        }
+
+        if ($new_status !== null && $request_id > 0) {
+            $update_stmt = mysqli_prepare(
+                $conn,
+                "UPDATE assistance_requests SET status = ?, archived = ? WHERE request_id = ?"
+            );
+            if ($update_stmt) {
+                mysqli_stmt_bind_param($update_stmt, "sii", $new_status, $archive_flag, $request_id);
+                mysqli_stmt_execute($update_stmt);
+                mysqli_stmt_close($update_stmt);
+            }
+        }
+    }
+
     $today = date('Y-m-d');
     
     // Delete all requests from previous days (reset daily)
     $delete_old_query = "DELETE FROM assistance_requests WHERE DATE(created_at) < '$today'";
     mysqli_query($conn, $delete_old_query);
     
-    // Fetch only today's requests
+    // Fetch only today's non-archived requests
     $assistance_query = "SELECT * FROM assistance_requests 
                         WHERE DATE(created_at) = '$today'
+                          AND (archived IS NULL OR archived = 0)
                         ORDER BY 
+                        CASE 
+                            WHEN status = 'pending' THEN 0
+                            WHEN status = 'in_progress' THEN 1
+                            WHEN status = 'resolved' THEN 2
+                            WHEN status = 'closed' THEN 3
+                            ELSE 4
+                        END,
                         CASE urgency WHEN 'urgent' THEN 0 ELSE 1 END,
                         created_at DESC 
                         LIMIT 50";
@@ -446,6 +491,7 @@ $timeline_type_icons = [
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 0.75rem;
             padding-top: 0.75rem;
             border-top: 1px solid rgba(15, 23, 42, 0.1);
             font-size: 0.85rem;
@@ -476,6 +522,49 @@ $timeline_type_icons = [
         .assistance-request-status.closed {
             background: #f3f4f6;
             color: #6b7280;
+        }
+        .assistance-request-status.archived {
+            background: #e5e7eb;
+            color: #4b5563;
+        }
+        .assistance-request-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .assistance-request-actions form {
+            margin: 0;
+        }
+        .assistance-action-btn {
+            border: none;
+            border-radius: 999px;
+            padding: 0.3rem 0.7rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease, transform 0.1s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .assistance-action-btn:active {
+            transform: translateY(1px);
+        }
+        .assistance-action-btn.done {
+            background: #d1fae5;
+            color: #047857;
+        }
+        .assistance-action-btn.done:hover {
+            background: #6ee7b7;
+        }
+        .assistance-action-btn.archive {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+        .assistance-action-btn.archive:hover {
+            background: #fecaca;
         }
         .assistance-requests-empty {
             text-align: center;
@@ -1395,6 +1484,9 @@ $timeline_type_icons = [
                 <button class="announcement-help-modal-close" onclick="closeAnnouncementHelp()" aria-label="Close">
                     <i class='bx bx-x'></i>
                 </button>
+                <span title="Archived requests" style="position:absolute; top:1.5rem; right:4.5rem; display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:50%; background:#f3f4f6; color:#4b5563;">
+                    <i class='bx bx-archive-in'></i>
+                </span>
                 <h1 class="announcement-help-modal-title">Request Assistance</h1>
             </div>
             <div class="announcement-help-modal-body">
@@ -1435,6 +1527,7 @@ $timeline_type_icons = [
                         }
                         
                         $request_date = new DateTime($request['created_at']);
+                        $is_resolved_or_closed = in_array($request['status'], ['resolved', 'closed'], true);
                     ?>
                         <div class="assistance-request-item <?php echo $is_urgent ? 'urgent' : ''; ?>">
                             <div class="assistance-request-header">
@@ -1455,13 +1548,34 @@ $timeline_type_icons = [
                             <?php endif; ?>
                             
                             <div class="assistance-request-meta">
-                                <span class="assistance-request-status <?php echo str_replace('_', '-', $request['status']); ?>">
-                                    <?php echo ucwords(str_replace('_', ' ', $request['status'])); ?>
-                                </span>
-                                <small>
-                                    <i class='bx bx-time'></i>
-                                    <?php echo $request_date->format('M d, Y - h:i A'); ?>
-                                </small>
+                                <div>
+                                    <span class="assistance-request-status <?php echo str_replace('_', '-', $request['status']); ?>">
+                                        <?php echo ucwords(str_replace('_', ' ', $request['status'])); ?>
+                                    </span>
+                                    <small>
+                                        <i class='bx bx-time'></i>
+                                        <?php echo $request_date->format('M d, Y - h:i A'); ?>
+                                    </small>
+                                </div>
+                                <div class="assistance-request-actions">
+                                    <?php if (!$is_resolved_or_closed): ?>
+                                        <form method="POST" action="">
+                                            <input type="hidden" name="request_id" value="<?php echo (int) $request['request_id']; ?>">
+                                            <input type="hidden" name="assistance_action" value="mark_done">
+                                            <button type="submit" class="assistance-action-btn done">
+                                                <i class='bx bx-check'></i>
+                                                Mark as done
+                                            </button>
+                                        </form>
+                                    <?php endif; ?>
+                                    <form method="POST" action="" onsubmit="return confirm('Are you sure you want to archive this request? It will be moved out of today\'s active list.');">
+                                        <input type="hidden" name="request_id" value="<?php echo (int) $request['request_id']; ?>">
+                                        <input type="hidden" name="assistance_action" value="archive">
+                                        <button type="submit" class="assistance-action-btn archive" title="Archive request">
+                                            <i class='bx bx-archive-in'></i>
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
                         </div>
                     <?php endforeach; ?>
