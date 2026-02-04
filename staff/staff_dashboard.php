@@ -59,10 +59,16 @@ $assistance_requests = [];
 $check_assistance_table = mysqli_query($conn, "SHOW TABLES LIKE 'assistance_requests'");
 if (mysqli_num_rows($check_assistance_table) > 0) {
     // Ensure archived column exists for assistance_requests (for soft-archiving)
-    mysqli_query($conn, "
-        ALTER TABLE assistance_requests 
-        ADD COLUMN IF NOT EXISTS archived TINYINT(1) NOT NULL DEFAULT 0
-    ");
+    $check_archived_col = mysqli_query(
+        $conn,
+        "SHOW COLUMNS FROM assistance_requests LIKE 'archived'"
+    );
+    if ($check_archived_col && mysqli_num_rows($check_archived_col) === 0) {
+        mysqli_query(
+            $conn,
+            "ALTER TABLE assistance_requests ADD COLUMN archived TINYINT(1) NOT NULL DEFAULT 0"
+        );
+    }
 
     // Handle assistance request actions from staff (mark as done / archive)
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['assistance_action'], $_POST['request_id'])) {
