@@ -129,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $stored_max_levels = $caskets_per_plot;
                 
                 for ($level = 1; $level <= $caskets_per_plot; $level++) {
-                    $level_check_query = "SELECT plot_id FROM plots WHERE section_id = ? AND row_number = ? AND plot_number = ? AND level_number = ?";
+                    $level_check_query = "SELECT plot_id FROM plots WHERE section_id = ? AND `row_number` = ? AND plot_number = ? AND level_number = ?";
                     $stmt = mysqli_prepare($conn, $level_check_query);
                     mysqli_stmt_bind_param($stmt, "iisi", $section_id, $row_number, $plot_number, $level);
                     mysqli_stmt_execute($stmt);
@@ -152,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 }
             } else {
                 // Create single plot
-                $check_query = "SELECT plot_id FROM plots WHERE section_id = ? AND row_number = ? AND plot_number = ? AND level_number = 1";
+                $check_query = "SELECT plot_id FROM plots WHERE section_id = ? AND `row_number` = ? AND plot_number = ? AND level_number = 1";
                 $stmt = mysqli_prepare($conn, $check_query);
                 mysqli_stmt_bind_param($stmt, "iis", $section_id, $row_number, $plot_number);
                 mysqli_stmt_execute($stmt);
@@ -452,14 +452,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['action'])) {
                     $plot_number = (string)$col;
 
                     // Check if a plot already exists for this section, row and plot index
-                    $check_query = "SELECT plot_number FROM plots WHERE section_id = ? AND row_number = ? AND plot_number = ?";
+                    $check_query = "SELECT plot_number FROM plots WHERE section_id = ? AND `row_number` = ? AND plot_number = ?";
                     $stmt = mysqli_prepare($conn, $check_query);
                     mysqli_stmt_bind_param($stmt, "iis", $section_id, $row, $plot_number);
                     mysqli_stmt_execute($stmt);
                     $check_result = mysqli_stmt_get_result($stmt);
                     
                     // Check if plot already exists (considering all levels if multi-level)
-                    $check_query = "SELECT plot_number FROM plots WHERE section_id = ? AND row_number = ? AND plot_number = ?";
+                    $check_query = "SELECT plot_number FROM plots WHERE section_id = ? AND `row_number` = ? AND plot_number = ?";
                     $stmt = mysqli_prepare($conn, $check_query);
                     mysqli_stmt_bind_param($stmt, "iis", $section_id, $row, $plot_number);
                     mysqli_stmt_execute($stmt);
@@ -480,7 +480,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['action'])) {
                         
                         for ($level = 1; $level <= $caskets_per_plot; $level++) {
                             // Check if this specific level already exists
-                            $level_check_query = "SELECT plot_id FROM plots WHERE section_id = ? AND row_number = ? AND plot_number = ? AND level_number = ?";
+                            $level_check_query = "SELECT plot_id FROM plots WHERE section_id = ? AND `row_number` = ? AND plot_number = ? AND level_number = ?";
                             $stmt = mysqli_prepare($conn, $level_check_query);
                             mysqli_stmt_bind_param($stmt, "iisi", $section_id, $row, $plot_number, $level);
                             mysqli_stmt_execute($stmt);
