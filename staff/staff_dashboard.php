@@ -1499,8 +1499,10 @@ $timeline_type_icons = [
     }
 
     // Toggle between active and archived assistance requests
-    const toggleArchivedBtn = document.getElementById('toggleArchivedBtn');
-    if (toggleArchivedBtn) {
+    window.addEventListener('DOMContentLoaded', function () {
+        const toggleArchivedBtn = document.getElementById('toggleArchivedBtn');
+        if (!toggleArchivedBtn) return;
+
         toggleArchivedBtn.addEventListener('click', function () {
             const activeContainer = document.getElementById('activeRequestsContainer');
             const archivedContainer = document.getElementById('archivedRequestsContainer');
@@ -1522,7 +1524,7 @@ $timeline_type_icons = [
                 this.title = 'View active requests';
             }
         });
-    }
+    });
 </script>
     <!-- Announcement Help Modal -->
     <div class="announcement-help-modal-overlay" id="announcementHelpModalOverlay" onclick="closeAnnouncementHelp(event)">
