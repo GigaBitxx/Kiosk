@@ -463,9 +463,11 @@ $events = [];
             max-width: 1280px;
             width: 98%;
             max-height: 95vh;
+            height: 95vh;
             padding: 24px 24px 20px 24px;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
         .modal-events-header {
             display: flex;
@@ -483,6 +485,7 @@ $events = [];
             gap: 24px;
             flex: 1;
             min-height: 0;
+            overflow: hidden;
         }
         .modal-filter-panel {
             width: 230px;
@@ -524,6 +527,13 @@ $events = [];
             display: flex;
             flex-direction: column;
             gap: 16px;
+            min-height: 0;
+        }
+        .events-columns-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            flex: 1;
             min-height: 0;
         }
         .events-section {
@@ -1929,36 +1939,38 @@ $events = [];
                         <!-- Today's events rendered here -->
                     </div>
                 </div>
-                <div class="events-section">
-                    <div class="events-section-header">
-                        <span>Upcoming Events</span>
-                        <select id="upcomingRangeSelect" class="form-select form-select-sm events-range-select">
-                            <option value="3">Next 3 days</option>
-                            <option value="7">Next week</option>
-                            <option value="30">Next month</option>
-                            <option value="90">Next 3 months</option>
-                            <option value="180">Next 6 months</option>
-                            <option value="365">Next year</option>
-                        </select>
+                <div class="events-columns-container">
+                    <div class="events-section">
+                        <div class="events-section-header">
+                            <span>Upcoming Events</span>
+                            <select id="upcomingRangeSelect" class="form-select form-select-sm events-range-select">
+                                <option value="3">Next 3 days</option>
+                                <option value="7">Next week</option>
+                                <option value="30">Next month</option>
+                                <option value="90">Next 3 months</option>
+                                <option value="180">Next 6 months</option>
+                                <option value="365">Next year</option>
+                            </select>
+                        </div>
+                        <div class="events-list events-list--stacked" id="upcomingEventsList">
+                            <!-- Upcoming events rendered here -->
+                        </div>
                     </div>
-                    <div class="events-list events-list--stacked" id="upcomingEventsList">
-                        <!-- Upcoming events rendered here -->
-                    </div>
-                </div>
-                <div class="events-section">
-                    <div class="events-section-header">
-                        <span>Overdue Events</span>
-                        <select id="overdueRangeSelect" class="form-select form-select-sm events-range-select">
-                            <option value="3">Past 3 days</option>
-                            <option value="7">Past week</option>
-                            <option value="30">Past month</option>
-                            <option value="90">Past 3 months</option>
-                            <option value="180">Past 6 months</option>
-                            <option value="365">Past year</option>
-                        </select>
-                    </div>
-                    <div class="events-list events-list--stacked" id="overdueEventsList">
-                        <!-- Overdue events rendered here -->
+                    <div class="events-section">
+                        <div class="events-section-header">
+                            <span>Overdue Events</span>
+                            <select id="overdueRangeSelect" class="form-select form-select-sm events-range-select">
+                                <option value="3">Past 3 days</option>
+                                <option value="7">Past week</option>
+                                <option value="30">Past month</option>
+                                <option value="90">Past 3 months</option>
+                                <option value="180">Past 6 months</option>
+                                <option value="365">Past year</option>
+                            </select>
+                        </div>
+                        <div class="events-list events-list--stacked" id="overdueEventsList">
+                            <!-- Overdue events rendered here -->
+                        </div>
                     </div>
                 </div>
             </div>
