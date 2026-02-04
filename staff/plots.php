@@ -1606,9 +1606,9 @@ if (!empty($params)) {
                         <select id="search_section" name="search_section">
                             <option value="">All Sections</option>
                             <?php 
-                            // Get sections for search form.
-                            // Only include sections that actually have plots, and hide
-                            // known test / mispositioned sections (TES, AP, BLK1–4, batch mode, indi, isa lang).
+                            // Get sections for search form, based purely on the database.
+                            // This reads directly from `sections` + `plots`, so when you remove
+                            // or change sections in the DB the filter will follow.
                             $search_sections_query = "SELECT s.section_id, s.section_name, s.section_code 
                                                      FROM sections s
                                                      JOIN plots p ON p.section_id = s.section_id
@@ -1618,8 +1618,6 @@ if (!empty($params)) {
                                                      AND UPPER(TRIM(s.section_code)) != 'AP'
                                                      AND s.section_name NOT REGEXP '^BLK[[:space:]]*[1-4]$'
                                                      AND s.section_code NOT REGEXP '^BLK[[:space:]]*[1-4]$'
-                                                     AND LOWER(s.section_name) NOT IN ('batch mode', 'indi', 'isa lang')
-                                                     AND LOWER(s.section_code) NOT IN ('bat', 'ind', 'isa')
                                                      GROUP BY s.section_id, s.section_name, s.section_code
                                                      ORDER BY s.section_code";
                             $search_sections_result = mysqli_query($conn, $search_sections_query);
