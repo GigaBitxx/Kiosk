@@ -354,9 +354,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
             <a href="logs.php"<?php echo $current_page === 'logs.php' ? ' class="active"' : ''; ?>>
                 <i class="bx bx-file-blank"></i>System Logs
             </a>
-            <a href="settings.php"<?php echo $current_page === 'settings.php' ? ' class="active"' : ''; ?>>
-                <i class="bx bx-cog"></i>System Settings
-            </a>
         </nav>
     </div>
     <div class="sidebar-bottom">
