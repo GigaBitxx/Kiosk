@@ -2383,14 +2383,76 @@ if (!empty($params)) {
                 const searchRow = document.getElementById('search_row');
                 
                 if (searchSection && searchRow) {
-                    searchSection.addEventListener('change', function() {
-                        if (this.value === '') {
-                            searchRow.disabled = true;
-                            searchRow.value = '';
-                        } else {
-                            // Reload page with new section to get rows
-                            this.form.submit();
+                    async function loadRowsForSection(sectionId) {
+                        // Reset row select UI immediately
+                        searchRow.disabled = true;
+                        searchRow.innerHTML = '';
+
+                        if (!sectionId) {
+                            const opt = document.createElement('option');
+                            opt.value = '';
+                            opt.textContent = 'Select a section first';
+                            searchRow.appendChild(opt);
+                            return;
                         }
+
+                        const loadingOpt = document.createElement('option');
+                        loadingOpt.value = '';
+                        loadingOpt.textContent = 'Loading rows...';
+                        searchRow.appendChild(loadingOpt);
+
+                        try {
+                            const res = await fetch(`get_section_rows.php?section_id=${encodeURIComponent(sectionId)}`, {
+                                method: 'GET',
+                                credentials: 'same-origin',
+                                headers: { 'Accept': 'application/json' }
+                            });
+                            const data = await res.json().catch(() => null);
+
+                            const rows = (data && data.success && Array.isArray(data.rows)) ? data.rows : [];
+
+                            searchRow.innerHTML = '';
+                            const allOpt = document.createElement('option');
+                            allOpt.value = '';
+                            allOpt.textContent = 'All Rows';
+                            searchRow.appendChild(allOpt);
+
+                            if (rows.length === 0) {
+                                const emptyOpt = document.createElement('option');
+                                emptyOpt.value = '';
+                                emptyOpt.textContent = 'No rows found';
+                                emptyOpt.disabled = true;
+                                searchRow.appendChild(emptyOpt);
+                                searchRow.disabled = true;
+                                return;
+                            }
+
+                            rows.forEach(r => {
+                                const opt = document.createElement('option');
+                                opt.value = String(r.row_number ?? '');
+                                opt.textContent = String(r.display_name ?? `Row ${r.row_number ?? ''}`);
+                                searchRow.appendChild(opt);
+                            });
+
+                            searchRow.disabled = false;
+                        } catch (e) {
+                            searchRow.innerHTML = '';
+                            const errOpt = document.createElement('option');
+                            errOpt.value = '';
+                            errOpt.textContent = 'Failed to load rows';
+                            errOpt.disabled = true;
+                            searchRow.appendChild(errOpt);
+                            searchRow.disabled = true;
+                        }
+                    }
+
+                    // Initial hydration (handles back/forward cache and server-rendered value)
+                    loadRowsForSection(searchSection.value);
+
+                    searchSection.addEventListener('change', function() {
+                        // Clear row selection whenever the section changes
+                        searchRow.value = '';
+                        loadRowsForSection(this.value);
                     });
                 }
             });
