@@ -2,6 +2,11 @@
 header('Content-Type: application/json');
 require_once '../config/database.php';
 
+// Run contract maintenance to ensure expired contracts (7+ days) are archived
+// and plots are freed before displaying map data
+require_once __DIR__ . '/../staff/contract_maintenance.php';
+run_contract_maintenance($conn, false);
+
 // Get all plots with their information for the kiosk map.
 // Keep section/plot grouping consistent with the staff maps page so
 // that filtering, section names, and wayfinding behave the same.

@@ -180,8 +180,14 @@ function run_contract_maintenance($conn, $is_cli = false)
                     $check_row = mysqli_fetch_assoc($check_result);
                     
                     if ($check_row && (int) $check_row['count'] === 0) {
-                        // No more deceased records, free the plot
-                        $update_query = "UPDATE plots SET status = 'available' WHERE plot_id = ?";
+                        // No more deceased records, free the plot and clear contract information
+                        $update_query = "UPDATE plots 
+                                        SET status = 'available',
+                                            contract_status = NULL,
+                                            contract_start_date = NULL,
+                                            contract_end_date = NULL,
+                                            contract_type = NULL
+                                        WHERE plot_id = ?";
                         $update_stmt = mysqli_prepare($conn, $update_query);
                         if ($update_stmt) {
                             mysqli_stmt_bind_param($update_stmt, "i", $plot_id);

@@ -7,6 +7,11 @@ if ($_SESSION['role'] !== 'staff') {
 require_once '../config/database.php';
 require_once '../admin/includes/logging.php';
 
+// Run contract maintenance on each page load so expired contracts
+// immediately archive deceased records and free plots
+require_once __DIR__ . '/contract_maintenance.php';
+run_contract_maintenance($conn, false);
+
 // For sidebar active state
 $current_page = basename($_SERVER['PHP_SELF']);
 
