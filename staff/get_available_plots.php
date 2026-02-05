@@ -9,13 +9,15 @@ header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 
 session_start();
-// Inline auth: auth_check.php may redirect (HTML), which breaks fetch(). Return JSON instead.
-if (!isset($_SESSION['staff_session']) || !isset($_SESSION['staff_user_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'staff') {
+// Inline auth: auth_check.php redirects to HTML; here we emit JSON-friendly errors.
+if (!isset($_SESSION['staff_session']) || !isset($_SESSION['staff_user_id'])) {
     http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Session expired or not authorized', 'plots' => []]);
+    echo json_encode(['success' => false, 'message' => 'Not authorized (no staff session)', 'plots' => []]);
     exit();
 }
 if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > 1800)) {
+    session_unset();
+    session_destroy();
     http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'Session expired', 'plots' => []]);
     exit();
