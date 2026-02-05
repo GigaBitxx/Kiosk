@@ -67,11 +67,13 @@ function getPendingArchiveStatus($endDate, $status) {
     }
     try {
         $end = new DateTime($endDate);
+        $end->setTime(0, 0, 0);
         $today = new DateTime();
+        $today->setTime(0, 0, 0);
         $archiveDate = clone $end;
         $archiveDate->modify('+7 days');
         if ($today < $archiveDate && $today >= $end) {
-            $daysRemaining = $today->diff($archiveDate)->days;
+            $daysRemaining = (int) $today->diff($archiveDate)->days;
             return ['is_pending' => true, 'days_remaining' => $daysRemaining];
         }
         return ['is_pending' => false, 'days_remaining' => null];
@@ -2625,17 +2627,19 @@ function deriveRenewalReminderDate($renewalRaw, $endRaw, $startRaw, $burialRaw) 
         let statusText = status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
         
         // Check if contract is pending archive (expired but within 7 days)
+        // Use date-only (local) so result matches PHP getPendingArchiveStatus
         let pendingArchiveInfo = null;
         if (status === 'expired' && contract.contract_end_date && contract.contract_end_date !== '0000-00-00') {
             try {
-                const endDate = new Date(contract.contract_end_date);
+                const [y, m, d] = contract.contract_end_date.split('-').map(Number);
+                const endDate = new Date(y, m - 1, d);
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
-                const archiveDate = new Date(endDate);
-                archiveDate.setDate(archiveDate.getDate() + 7);
+                const archiveDate = new Date(y, m - 1, d + 7);
                 
                 if (today >= endDate && today < archiveDate) {
-                    const daysRemaining = Math.ceil((archiveDate - today) / (1000 * 60 * 60 * 24));
+                    const msPerDay = 1000 * 60 * 60 * 24;
+                    const daysRemaining = Math.floor((archiveDate - today) / msPerDay);
                     pendingArchiveInfo = {
                         isPending: true,
                         daysRemaining: daysRemaining
