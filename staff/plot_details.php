@@ -2237,6 +2237,11 @@ if ($exhumation_enabled) {
                 selectEl.appendChild(opt);
             }
 
+            function setErrorOption(selectEl, message) {
+                if (!selectEl) return;
+                clearSelect(selectEl, message);
+            }
+
             function loadRows(sectionId, preselectRow) {
                 clearSelect(rowSelect, 'Select row...');
                 clearSelect(plotSelect, 'Select plot...');
@@ -2245,7 +2250,11 @@ if ($exhumation_enabled) {
                 fetch('get_section_rows.php?section_id=' + encodeURIComponent(sectionId))
                     .then(resp => resp.json())
                     .then(data => {
-                        if (!data || !data.success) return;
+                        if (!data || !data.success) {
+                            setErrorOption(rowSelect, 'Unable to load rows');
+                            console.error('Failed to load rows', data);
+                            return;
+                        }
                         data.rows.forEach(row => {
                             const opt = document.createElement('option');
                             opt.value = row.row_number;
@@ -2259,8 +2268,9 @@ if ($exhumation_enabled) {
                             }
                         }
                     })
-                    .catch(() => {
-                        // Silent fail – form is still usable but requires manual selection
+                    .catch((err) => {
+                        setErrorOption(rowSelect, 'Unable to load rows');
+                        console.error('Error loading rows', err);
                     });
             }
 
@@ -2275,9 +2285,24 @@ if ($exhumation_enabled) {
                 }
 
                 fetch(url)
-                    .then(resp => resp.json())
+                    .then(async resp => {
+                        const text = await resp.text();
+                        let data = null;
+                        try {
+                            data = JSON.parse(text);
+                        } catch (parseErr) {
+                            console.error('Plot load parse error', parseErr, text);
+                            setErrorOption(plotSelect, 'Unable to load plots');
+                            return null;
+                        }
+                        return data;
+                    })
                     .then(data => {
-                        if (!data || !data.success) return;
+                        if (!data || !data.success) {
+                            setErrorOption(plotSelect, 'Unable to load plots');
+                            console.error('Failed to load plots', data);
+                            return;
+                        }
                         if (!data.plots || data.plots.length === 0) {
                             const opt = document.createElement('option');
                             opt.value = '';
@@ -2292,8 +2317,9 @@ if ($exhumation_enabled) {
                             plotSelect.appendChild(opt);
                         });
                     })
-                    .catch(() => {
-                        // Silent fail – form is still usable but requires manual selection
+                    .catch((err) => {
+                        setErrorOption(plotSelect, 'Unable to load plots');
+                        console.error('Error loading plots', err);
                     });
             }
 
