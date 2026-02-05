@@ -817,9 +817,12 @@ if ($has_search_criteria) {
         }
         
         if (!empty($search_row)) {
-            $plot_status_query .= " AND p.row_number = ?";
-            $status_params[] = $search_row;
-            $status_types .= 'i';
+            $row_num = is_numeric($search_row) ? (int)$search_row : rowLetterToNumber(trim($search_row));
+            if ($row_num !== null) {
+                $plot_status_query .= " AND p.row_number = ?";
+                $status_params[] = $row_num;
+                $status_types .= 'i';
+            }
         }
         
         // If searching by name, we need to join with deceased_records to filter by name
@@ -931,9 +934,36 @@ if (mysqli_num_rows($table_check) == 0) {
     }
     
     if (!empty($search_plot)) {
-        $query .= " AND p.plot_number LIKE ?";
-        $params[] = "%$search_plot%";
-        $types .= 's';
+        $plot_term = trim($search_plot);
+        $parts = array_map('trim', explode('-', $plot_term));
+        // Support full location format: "Section-RowLetter-PlotNumber" or "Section-RowNum-PlotNumber"
+        if (count($parts) >= 3) {
+            $query .= " AND s.section_name LIKE ?";
+            $params[] = "%{$parts[0]}%";
+            $types .= 's';
+            $row_val = is_numeric($parts[1]) ? (int)$parts[1] : rowLetterToNumber($parts[1]);
+            if ($row_val !== null) {
+                $query .= " AND p.row_number = ?";
+                $params[] = $row_val;
+                $types .= 'i';
+            }
+            $query .= " AND p.plot_number LIKE ?";
+            $params[] = "%{$parts[2]}%";
+            $types .= 's';
+        } else {
+            // Simple search: match plot_number, section_name, or numeric row
+            $query .= " AND (p.plot_number LIKE ? OR s.section_name LIKE ?";
+            $params[] = "%{$plot_term}%";
+            $params[] = "%{$plot_term}%";
+            $types .= 'ss';
+            $row_val = is_numeric($plot_term) ? (int)$plot_term : rowLetterToNumber($plot_term);
+            if ($row_val !== null) {
+                $query .= " OR p.row_number = ?";
+                $params[] = $row_val;
+                $types .= 'i';
+            }
+            $query .= ")";
+        }
     }
     
     if (!empty($search_section)) {
@@ -943,9 +973,13 @@ if (mysqli_num_rows($table_check) == 0) {
     }
     
     if (!empty($search_row)) {
-        $query .= " AND p.row_number = ?";
-        $params[] = $search_row;
-        $types .= 'i';
+        // Support both row number (1, 2) and row letter (A, B)
+        $row_num = is_numeric($search_row) ? (int)$search_row : rowLetterToNumber(trim($search_row));
+        if ($row_num !== null) {
+            $query .= " AND p.row_number = ?";
+            $params[] = $row_num;
+            $types .= 'i';
+        }
     }
     
     
@@ -3461,7 +3495,7 @@ if (mysqli_num_rows($table_check) == 0) {
                     </div>
                     <div class="search-group">
                         <label for="search_row">Filter by Row</label>
-                        <select id="search_row" name="search_row" <?php echo empty($search_section) ? 'disabled' : ''; ?>>
+                        <select id="search_row" name="search_row" <?php echo empty($search_section) ? 'disabled' : ''; ?> data-has-server-rows="<?php echo (!empty($search_section) && !empty($rows_data)) ? '1' : '0'; ?>">
                             <?php if (empty($search_section)): ?>
                                 <option value="">Select a section first</option>
                             <?php else: ?>
@@ -4094,8 +4128,17 @@ if (mysqli_num_rows($table_check) == 0) {
             // Show loading state
             resetRowSelect('Loading rows...', true);
 
-            fetch('get_section_rows.php?section_id=' + encodeURIComponent(sectionId))
-                .then(response => response.json())
+            fetch('get_section_rows.php?section_id=' + encodeURIComponent(sectionId), { credentials: 'same-origin' })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Request failed: ' + response.status);
+                    }
+                    const ct = response.headers.get('content-type');
+                    if (!ct || !ct.includes('application/json')) {
+                        throw new Error('Invalid response format');
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     rowSelect.innerHTML = '';
 
@@ -4131,15 +4174,18 @@ if (mysqli_num_rows($table_check) == 0) {
         }
 
         if (sectionSelect && rowSelect) {
-            // Initial load if a section is already selected (e.g., after search)
-            if (sectionSelect.value) {
+            // Initial load: only fetch if we don't already have server-rendered rows
+            const hasServerRows = rowSelect.getAttribute('data-has-server-rows') === '1';
+            if (sectionSelect.value && !hasServerRows) {
                 loadRowsForSection(sectionSelect.value, selectedRowFromServer);
-            } else {
+            } else if (!sectionSelect.value) {
                 resetRowSelect('Select a section first', true);
             }
+            // When we have server rows, leave the dropdown as-is (no fetch to avoid overwriting)
 
             // Reload rows whenever section changes
             sectionSelect.addEventListener('change', function() {
+                rowSelect.removeAttribute('data-has-server-rows');
                 loadRowsForSection(this.value, '');
             });
         }

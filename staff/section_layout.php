@@ -21,10 +21,9 @@ $stmt->execute();
 $section = $stmt->get_result()->fetch_assoc();
 
 // Get all plots for this section without pagination
-// NOTE: We keep the SQL ordering simple and handle
-// more advanced/natural ordering in PHP below.
+// Order by row_number, then col_number (when used), then plot_number for consistent layout
 $plots_query = "SELECT * FROM plots WHERE section_id = ? "
-    . "ORDER BY `row_number` ASC, `plot_number` ASC";
+    . "ORDER BY `row_number` ASC, `col_number` ASC, `plot_number` ASC";
 $stmt = $conn->prepare($plots_query);
 $stmt->bind_param("i", $section_id);
 $stmt->execute();
@@ -295,14 +294,22 @@ $plots = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
         // Sort rows by row_number and render them
         ksort($rows);
+        $maxPlotsInRow = !empty($rows) ? max(array_map('count', $rows)) : 0;
+        $rowMinWidthPx = $maxPlotsInRow > 0 ? ($maxPlotsInRow * 72 - 12) : 0; // 60px plot + 12px gap each, minus last gap
         foreach ($rows as $rowNumber => $rowPlots):
-            // Sort plots within each row by plot_number using natural sorting for alphanumeric values
+            // Sort plots within each row: use col_number when set (for grid alignment), else plot_number
             usort($rowPlots, function($a, $b) {
-                return strnatcmp($a['plot_number'], $b['plot_number']);
+                $colA = isset($a['col_number']) ? (int)$a['col_number'] : 0;
+                $colB = isset($b['col_number']) ? (int)$b['col_number'] : 0;
+                if ($colA > 0 || $colB > 0) {
+                    $cmp = $colA <=> $colB;
+                    if ($cmp !== 0) return $cmp;
+                }
+                return strnatcmp($a['plot_number'] ?? '', $b['plot_number'] ?? '');
             });
-            // Determine row letter (Row 1 = A, Row 2 = B, etc.)
-            $rowLetter = chr(64 + (int)$rowNumber);
-            echo '<div class="plot-row" data-row-number="' . (int)$rowNumber . '" data-row-letter="' . $rowLetter . '">';
+            // Determine row letter (Row 1 = A, Row 2 = B, etc.) - consistent across all sections
+            $rowLetter = ($rowNumber > 0 && $rowNumber <= 26) ? chr(64 + (int)$rowNumber) : (string)$rowNumber;
+            echo '<div class="plot-row" data-row-number="' . (int)$rowNumber . '" data-row-letter="' . $rowLetter . '" style="min-width:' . (int)$rowMinWidthPx . 'px">';
             foreach ($rowPlots as $plot):
                 $rawPlotNumber = isset($plot['plot_number']) ? $plot['plot_number'] : '';
                 $plotId = isset($plot['plot_id']) ? (int)$plot['plot_id'] : 0;
