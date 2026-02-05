@@ -3404,7 +3404,7 @@ if (mysqli_num_rows($table_check) == 0) {
             <div class="delete-section-item" style="margin-top: 32px; padding-top: 32px; border-top: 1px solid #e0e0e0;">
                 <h4>Bulk Delete Records by Section</h4>
                 <p class="delete-warning">
-                    <strong>Warning:</strong> This will permanently delete ALL deceased records in the selected section and make their plots available. This action cannot be undone.
+                    <strong>Warning:</strong> This will permanently delete ALL deceased records in the selected section and make their plots available.
                 </p>
                 <form method="POST" action="" onsubmit="return confirmBulkDelete()">
                     <input type="hidden" name="action" value="bulk_delete_section">
@@ -3435,7 +3435,7 @@ if (mysqli_num_rows($table_check) == 0) {
             <div class="delete-section-item" style="margin-top: 32px; padding-top: 32px; border-top: 1px solid #e0e0e0;">
                 <h4>Bulk Delete Records by Rows</h4>
                 <p class="delete-warning">
-                    <strong>Warning:</strong> This will permanently delete ALL deceased records in the selected row (ROW A - ROW E) for the chosen section and make those plots available.
+                    <strong>Warning:</strong> This will permanently delete ALL deceased records in the selected row (ROW A - ROW E) for the chosen section and make those plots available. This action cannot be undone.
                 </p>
                 <form method="POST" action="" onsubmit="return confirmBulkDeleteRows()">
                     <input type="hidden" name="action" value="bulk_delete_rows">
@@ -4445,7 +4445,7 @@ if (mysqli_num_rows($table_check) == 0) {
             return false;
         }
         
-        return confirm(`Are you sure you want to delete the record for "${recordName}"?\n\nThis action cannot be undone and will make the plot available.`);
+        return confirm(`Are you sure you want to delete the record for "${recordName}"?\n\nThis action cannot be undone and will make the plot available.\n\nDo you want to continue?`);
     };
     
     window.confirmBulkDelete = function() {
@@ -4483,7 +4483,7 @@ if (mysqli_num_rows($table_check) == 0) {
         const rowLabel = rowsSelect.options[rowsSelect.selectedIndex]?.textContent.trim();
         
         return confirm(
-            `WARNING: This will permanently delete ALL deceased records in ${sectionName} for ${rowLabel}.\n\n` +
+            `Are you sure you want to delete ALL deceased records in ${sectionName} for ${rowLabel}?\n\n` +
             `This action cannot be undone and will make the corresponding plots available.\n\n` +
             `Do you want to continue?`
         );
