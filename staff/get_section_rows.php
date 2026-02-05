@@ -1,12 +1,12 @@
 <?php
 require_once '../includes/auth_check.php';
-if ($_SESSION['role'] !== 'staff') {
+header('Content-Type: application/json');
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'staff') {
     http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Forbidden', 'rows' => []]);
     exit();
 }
 require_once '../config/database.php';
-
-header('Content-Type: application/json');
 
 // Function to convert row number to letter (1=A, 2=B, 27=AA, etc.)
 function rowNumberToLetter($rowNumber) {
@@ -51,18 +51,31 @@ if (isset($_GET['section_ids'])) {
               WHERE section_id IN ($placeholders)
               ORDER BY row_number";
     
+    if (!$conn) {
+        echo json_encode(['success' => false, 'message' => 'Database connection failed', 'rows' => []]);
+        exit;
+    }
     $stmt = mysqli_prepare($conn, $query);
+    if (!$stmt) {
+        echo json_encode(['success' => false, 'message' => 'Database error', 'rows' => []]);
+        exit;
+    }
     mysqli_stmt_bind_param($stmt, str_repeat('i', count($section_ids)), ...$section_ids);
-    mysqli_stmt_execute($stmt);
+    if (!mysqli_stmt_execute($stmt)) {
+        echo json_encode(['success' => false, 'message' => 'Database error', 'rows' => []]);
+        exit;
+    }
     $result = mysqli_stmt_get_result($stmt);
     
     $rows = [];
-    while ($row = mysqli_fetch_assoc($result)) {
-        $rowLetter = rowNumberToLetter($row['row_number']);
-        $rows[] = [
-            'row_number' => $row['row_number'],
-            'display_name' => 'Row ' . $rowLetter
-        ];
+    if ($result) {
+        while ($row = mysqli_fetch_assoc($result)) {
+            $rowLetter = rowNumberToLetter($row['row_number']);
+            $rows[] = [
+                'row_number' => $row['row_number'],
+                'display_name' => 'Row ' . $rowLetter
+            ];
+        }
     }
     
     echo json_encode([
@@ -72,6 +85,11 @@ if (isset($_GET['section_ids'])) {
 } elseif (isset($_GET['section_id']) && is_numeric($_GET['section_id'])) {
     $section_id = intval($_GET['section_id']);
     
+    if (!$conn) {
+        echo json_encode(['success' => false, 'message' => 'Database connection failed', 'rows' => []]);
+        exit;
+    }
+    
     // Get distinct row numbers for the selected section (any status)
     $query = "SELECT DISTINCT row_number 
               FROM plots 
@@ -79,17 +97,26 @@ if (isset($_GET['section_ids'])) {
               ORDER BY row_number";
     
     $stmt = mysqli_prepare($conn, $query);
+    if (!$stmt) {
+        echo json_encode(['success' => false, 'message' => 'Database error', 'rows' => []]);
+        exit;
+    }
     mysqli_stmt_bind_param($stmt, "i", $section_id);
-    mysqli_stmt_execute($stmt);
+    if (!mysqli_stmt_execute($stmt)) {
+        echo json_encode(['success' => false, 'message' => 'Database error', 'rows' => []]);
+        exit;
+    }
     $result = mysqli_stmt_get_result($stmt);
     
     $rows = [];
-    while ($row = mysqli_fetch_assoc($result)) {
-        $rowLetter = rowNumberToLetter($row['row_number']);
-        $rows[] = [
-            'row_number' => $row['row_number'],
-            'display_name' => 'Row ' . $rowLetter
-        ];
+    if ($result) {
+        while ($row = mysqli_fetch_assoc($result)) {
+            $rowLetter = rowNumberToLetter($row['row_number']);
+            $rows[] = [
+                'row_number' => $row['row_number'],
+                'display_name' => 'Row ' . $rowLetter
+            ];
+        }
     }
     
     echo json_encode([

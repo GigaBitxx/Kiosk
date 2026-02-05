@@ -2820,67 +2820,75 @@ if (mysqli_num_rows($table_check) == 0) {
                 }
             };
             
-            // Handle section selection change to populate row dropdown for bulk import
+            // Handle section selection change to populate row dropdown for bulk import (card)
             document.addEventListener('DOMContentLoaded', function() {
                 const importSectionSelect = document.getElementById('import_section_id');
                 const importRowSelect = document.getElementById('import_row_number');
                 
+                function loadImportRows(sectionId) {
+                    if (!importRowSelect) return;
+                    importRowSelect.innerHTML = '<option value="">Loading rows...</option>';
+                    importRowSelect.disabled = true;
+                    if (!sectionId) {
+                        importRowSelect.innerHTML = '<option value="">First select a section...</option>';
+                        return;
+                    }
+                    function rowNumToLetter(rowNum) {
+                        const num = parseInt(rowNum, 10);
+                        if (Number.isNaN(num) || num < 1) return rowNum;
+                        let letter = '';
+                        let n = num;
+                        while (n > 0) {
+                            const remainder = (n - 1) % 26;
+                            letter = String.fromCharCode(65 + remainder) + letter;
+                            n = Math.floor((n - 1) / 26);
+                        }
+                        return letter;
+                    }
+                    fetch('get_section_rows.php?section_id=' + encodeURIComponent(sectionId))
+                        .then(response => response.text().then(text => {
+                            if (!response.ok) {
+                                try {
+                                    const data = JSON.parse(text);
+                                    throw new Error(data.message || 'Request failed');
+                                } catch (e) {
+                                    if (e instanceof SyntaxError) throw new Error('Request failed');
+                                    throw e;
+                                }
+                            }
+                            return JSON.parse(text);
+                        }))
+                        .then(data => {
+                            if (data.success && data.rows && data.rows.length > 0) {
+                                importRowSelect.innerHTML = '<option value="">Choose a row...</option>';
+                                data.rows.forEach(row => {
+                                    const option = document.createElement('option');
+                                    option.value = row.row_number;
+                                    option.textContent = 'ROW ' + rowNumToLetter(row.row_number);
+                                    importRowSelect.appendChild(option);
+                                });
+                                importRowSelect.disabled = false;
+                            } else {
+                                importRowSelect.innerHTML = '<option value="">No rows found in this section</option>';
+                                importRowSelect.disabled = true;
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error loading rows:', error);
+                            const msg = (error && error.message) ? error.message : 'Error loading rows';
+                            importRowSelect.innerHTML = '<option value="">' + (msg.length > 40 ? 'Error loading rows' : msg) + '</option>';
+                            importRowSelect.disabled = true;
+                        });
+                }
+                
                 if (importSectionSelect && importRowSelect) {
                     importSectionSelect.addEventListener('change', function() {
-                        const sectionId = this.value;
-                        
-                        // Reset row dropdown
-                        importRowSelect.innerHTML = '<option value="">Loading rows...</option>';
-                        importRowSelect.disabled = true;
-                        
-                        if (sectionId) {
-                            // Fetch available rows for the selected section
-                            fetch(`get_section_rows.php?section_id=${sectionId}`)
-                                .then(response => response.json())
-                                .then(data => {
-                                    if (data.success && data.rows.length > 0) {
-                                        // Function to convert row number to letter (1=A, 2=B, ..., 26=Z, 27=AA, etc.)
-                                        function rowNumberToLetter(rowNum) {
-                                            const num = parseInt(rowNum, 10);
-                                            if (Number.isNaN(num) || num < 1) {
-                                                return rowNum;
-                                            }
-                                            let letter = '';
-                                            let n = num;
-                                            while (n > 0) {
-                                                const remainder = (n - 1) % 26;
-                                                letter = String.fromCharCode(65 + remainder) + letter;
-                                                n = Math.floor((n - 1) / 26);
-                                            }
-                                            return letter;
-                                        }
-                                        
-                                        // Populate row dropdown with available rows
-                                        importRowSelect.innerHTML = '<option value="">Choose a row...</option>';
-                                        data.rows.forEach(row => {
-                                            const option = document.createElement('option');
-                                            option.value = row.row_number;
-                                            option.textContent = 'ROW ' + rowNumberToLetter(row.row_number);
-                                            importRowSelect.appendChild(option);
-                                        });
-                                        importRowSelect.disabled = false;
-                                    } else {
-                                        // No available rows found
-                                        importRowSelect.innerHTML = '<option value="">No rows found in this section</option>';
-                                        importRowSelect.disabled = true;
-                                    }
-                                })
-                                .catch(error => {
-                                    console.error('Error fetching rows:', error);
-                                    importRowSelect.innerHTML = '<option value="">Error loading rows</option>';
-                                    importRowSelect.disabled = true;
-                                });
-                        } else {
-                            // No section selected
-                            importRowSelect.innerHTML = '<option value="">First select a section...</option>';
-                            importRowSelect.disabled = true;
-                        }
+                        loadImportRows(this.value);
                     });
+                    // If section is already selected (e.g. after redirect), load rows
+                    if (importSectionSelect.value) {
+                        loadImportRows(importSectionSelect.value);
+                    }
                 }
                 
                 // Auto-open the appropriate section when returning with a success/error message
@@ -4324,6 +4332,11 @@ if (mysqli_num_rows($table_check) == 0) {
             if (bulkTab) bulkTab.style.display = 'block';
             if (singleBtn) singleBtn.classList.remove('active');
             if (bulkBtn) bulkBtn.classList.add('active');
+            // Load rows when bulk tab is shown if a section is already selected
+            const bulkSectionSelect = document.getElementById('bulk_import_section_id');
+            if (bulkSectionSelect && bulkSectionSelect.value) {
+                bulkSectionSelect.dispatchEvent(new Event('change'));
+            }
         }
     };
     
@@ -4621,61 +4634,68 @@ if (mysqli_num_rows($table_check) == 0) {
         const bulkImportSectionSelect = document.getElementById('bulk_import_section_id');
         const bulkImportRowSelect = document.getElementById('bulk_import_row_number');
         
+        function rowNumberToLetterForImport(rowNum) {
+            const num = parseInt(rowNum, 10);
+            if (Number.isNaN(num) || num < 1) return rowNum;
+            let letter = '';
+            let n = num;
+            while (n > 0) {
+                const remainder = (n - 1) % 26;
+                letter = String.fromCharCode(65 + remainder) + letter;
+                n = Math.floor((n - 1) / 26);
+            }
+            return letter;
+        }
+        
+        function loadBulkImportRows(sectionId) {
+            if (!bulkImportRowSelect) return;
+            bulkImportRowSelect.innerHTML = '<option value="">Loading rows...</option>';
+            bulkImportRowSelect.disabled = true;
+            if (!sectionId) {
+                bulkImportRowSelect.innerHTML = '<option value="">First select a section...</option>';
+                return;
+            }
+            fetch('get_section_rows.php?section_id=' + encodeURIComponent(sectionId))
+                .then(response => {
+                    return response.text().then(text => {
+                        if (!response.ok) {
+                            try {
+                                const data = JSON.parse(text);
+                                throw new Error(data.message || 'Request failed');
+                            } catch (e) {
+                                if (e instanceof SyntaxError) throw new Error('Request failed');
+                                throw e;
+                            }
+                        }
+                        return JSON.parse(text);
+                    });
+                })
+                .then(data => {
+                    if (data.success && data.rows && data.rows.length > 0) {
+                        bulkImportRowSelect.innerHTML = '<option value="">Choose a row...</option>';
+                        data.rows.forEach(row => {
+                            const option = document.createElement('option');
+                            option.value = row.row_number;
+                            option.textContent = 'ROW ' + rowNumberToLetterForImport(row.row_number);
+                            bulkImportRowSelect.appendChild(option);
+                        });
+                        bulkImportRowSelect.disabled = false;
+                    } else {
+                        bulkImportRowSelect.innerHTML = '<option value="">No rows found in this section</option>';
+                        bulkImportRowSelect.disabled = true;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching rows:', error);
+                    const msg = (error && error.message) ? error.message : 'Error loading rows';
+                    bulkImportRowSelect.innerHTML = '<option value="">' + (msg.length > 40 ? 'Error loading rows' : msg) + '</option>';
+                    bulkImportRowSelect.disabled = true;
+                });
+        }
+        
         if (bulkImportSectionSelect && bulkImportRowSelect) {
             bulkImportSectionSelect.addEventListener('change', function() {
-                const sectionId = this.value;
-                
-                // Reset row dropdown
-                bulkImportRowSelect.innerHTML = '<option value="">Loading rows...</option>';
-                bulkImportRowSelect.disabled = true;
-                
-                if (sectionId) {
-                    // Fetch available rows for the selected section
-                    fetch(`get_section_rows.php?section_id=${sectionId}`)
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success && data.rows.length > 0) {
-                                // Function to convert row number to letter (1=A, 2=B, ..., 26=Z, 27=AA, etc.)
-                                function rowNumberToLetterForImport(rowNum) {
-                                    const num = parseInt(rowNum, 10);
-                                    if (Number.isNaN(num) || num < 1) {
-                                        return rowNum;
-                                    }
-                                    let letter = '';
-                                    let n = num;
-                                    while (n > 0) {
-                                        const remainder = (n - 1) % 26;
-                                        letter = String.fromCharCode(65 + remainder) + letter;
-                                        n = Math.floor((n - 1) / 26);
-                                    }
-                                    return letter;
-                                }
-                                
-                                // Populate row dropdown with available rows
-                                bulkImportRowSelect.innerHTML = '<option value="">Choose a row...</option>';
-                                data.rows.forEach(row => {
-                                    const option = document.createElement('option');
-                                    option.value = row.row_number;
-                                    option.textContent = 'ROW ' + rowNumberToLetterForImport(row.row_number);
-                                    bulkImportRowSelect.appendChild(option);
-                                });
-                                bulkImportRowSelect.disabled = false;
-                            } else {
-                                // No available rows found
-                                bulkImportRowSelect.innerHTML = '<option value="">No rows found in this section</option>';
-                                bulkImportRowSelect.disabled = true;
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error fetching rows:', error);
-                            bulkImportRowSelect.innerHTML = '<option value="">Error loading rows</option>';
-                            bulkImportRowSelect.disabled = true;
-                        });
-                } else {
-                    // No section selected
-                    bulkImportRowSelect.innerHTML = '<option value="">First select a section...</option>';
-                    bulkImportRowSelect.disabled = true;
-                }
+                loadBulkImportRows(this.value);
             });
         }
         
