@@ -1586,6 +1586,8 @@ if ($result) {
         // Track all individual plot markers so we can hide/show them during wayfinding
         let allPlotMarkers = [];
         let hiddenPlotMarkers = [];
+        // Currently highlighted plot marker (search result) – restore style when clearing
+        let highlightedPlotMarker = null;
 
         // Elements for centered search-result card
         const searchResultModal = document.getElementById('searchResultModal');
@@ -1985,6 +1987,14 @@ if ($result) {
                         keyboard: false,
                         bubblingMouseEvents: false
                     });
+                    // Store original style so we can restore after search highlight
+                    marker._originalStyle = {
+                        fillColor: plotColors[status],
+                        color: '#ffffff',
+                        weight: 2,
+                        opacity: 1,
+                        fillOpacity: 0.9
+                    };
 
                     // Keep popup binding for search functionality, but marker is invisible and non-interactive
                     marker.bindPopup(popupHtml, { className: 'custom-popup' });
@@ -3311,6 +3321,7 @@ if ($result) {
         function clearSearch() {
             const searchInput = document.getElementById('searchDeceased');
             if (searchInput) searchInput.value = '';
+            clearPlotHighlight();
             closeSearchResultModal();
             closeSearchSuggestionPanel();
             if (map && map.closePopup) map.closePopup();
@@ -3369,6 +3380,32 @@ if ($result) {
                     input.blur();
                 }
             });
+        }
+
+        // Highlight the plot marker for search result (bold border), restore previous when changing search
+        function highlightPlotMarker(plotId) {
+            if (highlightedPlotMarker && highlightedPlotMarker._originalStyle) {
+                highlightedPlotMarker.setStyle(highlightedPlotMarker._originalStyle);
+                highlightedPlotMarker = null;
+            }
+            if (!plotId) return;
+            const marker = plotMarkersById[plotId] || plotMarkersById[String(plotId)] || plotMarkersById[Number(plotId)];
+            if (!marker || !marker._originalStyle) return;
+            highlightedPlotMarker = marker;
+            marker.setStyle({
+                weight: 4,
+                color: '#2563eb',
+                fillColor: marker._originalStyle.fillColor,
+                opacity: 1,
+                fillOpacity: marker._originalStyle.fillOpacity
+            });
+        }
+
+        function clearPlotHighlight() {
+            if (highlightedPlotMarker && highlightedPlotMarker._originalStyle) {
+                highlightedPlotMarker.setStyle(highlightedPlotMarker._originalStyle);
+                highlightedPlotMarker = null;
+            }
         }
 
         // Open the small Leaflet popup anchored to the marker (no centered card)
@@ -3509,6 +3546,7 @@ if ($result) {
 
         // Show plot search result: suggestion panel if marker exists, else centered modal (so something always shows)
         function showPlotSearchResult(lat, lng, plotId, plotLabel, sectionName) {
+            highlightPlotMarker(plotId);
             if (showSuggestionPanelForPlotId(plotId, plotLabel)) return;
             if (!searchResultModal || !searchResultContent) return;
             const section = sectionName || plotLabel;
