@@ -4209,13 +4209,13 @@ if ($result) {
                                         plotData.plot.plot_number;
                                     const zoomLevel = getResponsiveZoom(20, 19);
                                     map.flyTo([lat, lng], zoomLevel, { duration: 0.8 });
-                                    setTimeout(() => {
+                                    setTimeout(() => {  
                                         map.closePopup();
                                         showPlotSearchResult(lat, lng, plotData.plot.plot_id, plotLabel, plotData.plot.section_name || plotData.plot.section_code);
                                     }, 800);
                                     return;
                                 }
-                                showNotification('No matching plot, deceased, section, or landmark found. Please try again.', 'error');
+                                showNotification('No matching plot, deceased, section. Please try again.', 'error');
                             });
                     }
                     
@@ -4257,7 +4257,7 @@ if ($result) {
                             focusSuggestionPanelForMobile();
                         }, 800);
                     } else {
-                        showNotification('No matching plot, deceased, section, or landmark found. Please try again.', 'error');
+                        showNotification('No matching plot, deceased, section. Please try again.', 'error');
                     }
                 })
                 .catch((error) => {
