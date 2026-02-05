@@ -267,11 +267,27 @@ while ($row = mysqli_fetch_assoc($result)) {
             display: none !important;
             visibility: hidden !important;
         }
-        /* Prevent any border/outline on date-events modal that could look like a vertical line */
+        /* Prevent any border/outline on date-events modal that could look like a blue line */
         #dateEventsModal .modal-dialog,
         #dateEventsModal .modal-content {
             border: none;
             outline: none;
+        }
+        /* Remove focus ring/blue line from modal and all its contents when modal opens */
+        #dateEventsModal:focus,
+        #dateEventsModal:focus-visible,
+        #dateEventsModal .modal-dialog:focus,
+        #dateEventsModal .modal-content:focus,
+        #dateEventsModal .modal-header:focus,
+        #dateEventsModal .modal-body:focus,
+        #dateEventsModal .btn-close:focus,
+        #dateEventsModal .btn-close:focus-visible,
+        #dateEventsModal .btn:focus,
+        #dateEventsModal .btn:focus-visible,
+        #dateEventsModal *:focus,
+        #dateEventsModal *:focus-visible {
+            outline: none !important;
+            box-shadow: none !important;
         }
         /* Ensure date-events modal and its backdrop sit above calendar and any FC elements */
         #dateEventsModal.modal {
