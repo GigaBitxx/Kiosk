@@ -1238,7 +1238,9 @@ function deriveRenewalReminderDate($renewalRaw, $endRaw, $startRaw, $burialRaw) 
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            max-width: 800px;
+            max-width: 960px;
+            width: 95vw;
+            max-height: 90vh;
             z-index: 1055 !important;
         }
         
@@ -1247,14 +1249,16 @@ function deriveRenewalReminderDate($renewalRaw, $endRaw, $startRaw, $burialRaw) 
             flex-direction: column;
             overflow: visible;
             position: relative;
+            max-height: 90vh;
             z-index: 1055 !important;
         }
         
         #contractViewModal .modal-body {
-            overflow: visible;
+            overflow-y: auto;
             overflow-x: hidden;
             flex: 1;
             padding: 2rem;
+            min-height: 320px;
         }
         
         /* Hide scrollbar completely */
