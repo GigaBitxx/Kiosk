@@ -1,4 +1,10 @@
 <?php
+// Prevent any accidental output (notices, BOM, includes) from breaking JSON
+if (ob_get_level()) {
+    ob_end_clean();
+}
+ob_start();
+
 // Set JSON response first so we never send redirects (keeps fetch() from getting HTML)
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
@@ -18,6 +24,9 @@ if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > 
 $_SESSION['last_activity'] = time();
 
 require_once '../config/database.php';
+
+// Discard any accidental output from config/includes so only our JSON is sent
+ob_clean();
 
 // Function to convert row number to letter (1=A, 2=B, 27=AA, etc.)
 function rowNumberToLetter($rowNumber) {
@@ -57,10 +66,10 @@ if (isset($_GET['section_ids'])) {
     $placeholders = str_repeat('?,', count($section_ids) - 1) . '?';
     
     // Get distinct row numbers for the selected sections (any status)
-    $query = "SELECT DISTINCT row_number 
+    $query = "SELECT DISTINCT `row_number` 
               FROM plots 
               WHERE section_id IN ($placeholders)
-              ORDER BY row_number";
+              ORDER BY `row_number`";
     
     if (!$conn) {
         echo json_encode(['success' => false, 'message' => 'Database connection failed', 'rows' => []]);
@@ -102,10 +111,10 @@ if (isset($_GET['section_ids'])) {
     }
     
     // Get distinct row numbers for the selected section (any status)
-    $query = "SELECT DISTINCT row_number 
+    $query = "SELECT DISTINCT `row_number` 
               FROM plots 
               WHERE section_id = ? 
-              ORDER BY row_number";
+              ORDER BY `row_number`";
     
     $stmt = mysqli_prepare($conn, $query);
     if (!$stmt) {

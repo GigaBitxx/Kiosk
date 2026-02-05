@@ -881,10 +881,10 @@ $sections_result = mysqli_query($conn, $sections_query);
 $rows_result = null;
 $rows_data = [];
 if (!empty($search_section)) {
-    $rows_query = "SELECT DISTINCT row_number 
+    $rows_query = "SELECT DISTINCT `row_number` 
                    FROM plots 
                    WHERE section_id = ? 
-                   ORDER BY row_number";
+                   ORDER BY `row_number`";
     $stmt = mysqli_prepare($conn, $rows_query);
     if ($stmt) {
         mysqli_stmt_bind_param($stmt, "i", $search_section);
@@ -4282,15 +4282,25 @@ if (mysqli_num_rows($table_check) == 0) {
 
             fetch('get_section_rows.php?section_id=' + encodeURIComponent(sectionId), { credentials: 'same-origin' })
                 .then(response => {
-                    const ct = response.headers.get('content-type');
-                    const isJson = ct && ct.includes('application/json');
                     return response.text().then(function(text) {
-                        const data = isJson && text ? (function() { try { return JSON.parse(text); } catch(e) { return null; } })() : null;
+                        const ct = response.headers.get('content-type');
+                        const isJson = ct && ct.includes('application/json');
+                        let data = null;
+                        const trimmed = (text && text.trim()) || '';
+                        if (trimmed) {
+                            try {
+                                if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+                                    data = JSON.parse(text);
+                                } else if (isJson) {
+                                    data = JSON.parse(text);
+                                }
+                            } catch (e) { /* ignore */ }
+                        }
                         if (!response.ok) {
                             const msg = (data && data.message) ? data.message : ('Request failed: ' + response.status);
                             throw new Error(msg);
                         }
-                        if (!isJson || !data) {
+                        if (!data || typeof data !== 'object') {
                             throw new Error('Invalid response format');
                         }
                         return data;
