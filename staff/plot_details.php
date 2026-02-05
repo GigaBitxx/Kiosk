@@ -84,7 +84,7 @@ if (isset($_GET['cancel_restore']) && $_GET['cancel_restore'] === '1') {
 // When coming from restore flow, check if plot is occupied and find next available plot if needed
 if ($is_restore_flow) {
     // First, check the current plot's status
-    $check_plot_query = "SELECT plot_id, section_id, row_number, plot_number, status FROM plots WHERE plot_id = ?";
+    $check_plot_query = "SELECT plot_id, section_id, `row_number`, plot_number, status FROM plots WHERE plot_id = ?";
     $check_stmt = mysqli_prepare($conn, $check_plot_query);
     if ($check_stmt) {
         mysqli_stmt_bind_param($check_stmt, "i", $plot_id);
@@ -102,7 +102,7 @@ if ($is_restore_flow) {
             // Try to find next available plot in the same row first
             $next_plot_query = "SELECT plot_id FROM plots 
                                WHERE section_id = ? 
-                               AND row_number = ? 
+                               AND `row_number` = ? 
                                AND status = 'available' 
                                AND CAST(plot_number AS UNSIGNED) > CAST(? AS UNSIGNED)
                                ORDER BY CAST(plot_number AS UNSIGNED) ASC 
@@ -147,7 +147,7 @@ if ($is_restore_flow) {
                 $any_plot_query = "SELECT plot_id FROM plots 
                                   WHERE section_id = ? 
                                   AND status = 'available' 
-                                  ORDER BY row_number ASC, CAST(plot_number AS UNSIGNED) ASC 
+                                  ORDER BY `row_number` ASC, CAST(plot_number AS UNSIGNED) ASC 
                                   LIMIT 1";
                 $any_stmt = mysqli_prepare($conn, $any_plot_query);
                 if ($any_stmt) {
