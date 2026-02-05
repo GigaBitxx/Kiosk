@@ -810,6 +810,10 @@ $timeline_type_icons = [
         .notification-dropdown.show {
             display: flex;
         }
+        /* Keep notification button and dropdown below modals when any modal is open */
+        body.modal-open .notification-container {
+            z-index: 100;
+        }
         .notification-header {
             padding: 16px 20px;
             border-bottom: 1px solid #e0e0e0;

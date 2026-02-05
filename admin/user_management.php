@@ -394,6 +394,16 @@ $pending_reset_requests = get_pending_password_reset_requests($conn);
         .notification-dropdown.show {
             display: block;
         }
+        /* Keep notification button and dropdown below modals when any modal is open */
+        body.modal-open .notification-wrapper,
+        body.edit-modal-open .notification-wrapper {
+            z-index: 0;
+            position: relative;
+        }
+        body.modal-open .notification-dropdown,
+        body.edit-modal-open .notification-dropdown {
+            z-index: 0;
+        }
         .notification-item {
             border-bottom: 1px solid #f0f0f0;
             padding-bottom: 12px;
@@ -1579,6 +1589,7 @@ window.openEditModal = function(userId, username, fullName) {
         userIdInput.value = userId || '';
         usernameInput.value = username || '';
         fullNameInput.value = fullName || '';
+        document.body.classList.add('edit-modal-open');
         modal.style.display = 'block';
     } catch (error) {
         console.error('Error opening edit modal:', error);
@@ -1590,6 +1601,7 @@ window.closeEditModal = function() {
     try {
         const modal = document.getElementById('editUserModal');
         if (modal) {
+            document.body.classList.remove('edit-modal-open');
             modal.style.display = 'none';
             // Reset form
             const form = document.getElementById('editUserForm');
