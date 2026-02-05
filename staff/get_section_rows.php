@@ -1,11 +1,22 @@
 <?php
-require_once '../includes/auth_check.php';
-header('Content-Type: application/json');
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'staff') {
+// Set JSON response first so we never send redirects (keeps fetch() from getting HTML)
+header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+
+session_start();
+// Inline auth: redirect would break fetch(); return JSON so client can show message or reload
+if (!isset($_SESSION['staff_session']) || !isset($_SESSION['staff_user_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'staff') {
     http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Forbidden', 'rows' => []]);
+    echo json_encode(['success' => false, 'message' => 'Session expired or not authorized', 'rows' => []]);
     exit();
 }
+if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > 1800)) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Session expired', 'rows' => []]);
+    exit();
+}
+$_SESSION['last_activity'] = time();
+
 require_once '../config/database.php';
 
 // Function to convert row number to letter (1=A, 2=B, 27=AA, etc.)

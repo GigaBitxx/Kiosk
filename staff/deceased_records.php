@@ -3337,7 +3337,7 @@ if (mysqli_num_rows($table_check) == 0) {
             <div class="delete-section-item">
                 <h4>Delete Individual Record</h4>
                 <p class="delete-warning">
-                    <strong>Warning:</strong> This will permanently delete the selected record and make the plot available.
+                    <strong>Warning:</strong> This will permanently delete the selected record and make the plot available. This action cannot be undone.
                 </p>
                 <form method="POST" action="" onsubmit="return confirmSingleDelete()">
                     <input type="hidden" name="action" value="delete_record">
@@ -3404,7 +3404,7 @@ if (mysqli_num_rows($table_check) == 0) {
             <div class="delete-section-item" style="margin-top: 32px; padding-top: 32px; border-top: 1px solid #e0e0e0;">
                 <h4>Bulk Delete Records by Section</h4>
                 <p class="delete-warning">
-                    <strong>Warning:</strong> This will permanently delete ALL deceased records in the selected section and make their plots available.
+                    <strong>Warning:</strong> This will permanently delete ALL deceased records in the selected section and make their plots available. This action cannot be undone.
                 </p>
                 <form method="POST" action="" onsubmit="return confirmBulkDelete()">
                     <input type="hidden" name="action" value="bulk_delete_section">
@@ -4153,25 +4153,28 @@ if (mysqli_num_rows($table_check) == 0) {
 
             fetch('get_section_rows.php?section_id=' + encodeURIComponent(sectionId), { credentials: 'same-origin' })
                 .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Request failed: ' + response.status);
-                    }
                     const ct = response.headers.get('content-type');
-                    if (!ct || !ct.includes('application/json')) {
-                        throw new Error('Invalid response format');
-                    }
-                    return response.json();
+                    const isJson = ct && ct.includes('application/json');
+                    return response.text().then(function(text) {
+                        const data = isJson && text ? (function() { try { return JSON.parse(text); } catch(e) { return null; } })() : null;
+                        if (!response.ok) {
+                            const msg = (data && data.message) ? data.message : ('Request failed: ' + response.status);
+                            throw new Error(msg);
+                        }
+                        if (!isJson || !data) {
+                            throw new Error('Invalid response format');
+                        }
+                        return data;
+                    });
                 })
                 .then(data => {
                     rowSelect.innerHTML = '';
 
-                    // Default "All Rows" option
-                    const defaultOption = document.createElement('option');
-                    defaultOption.value = '';
-                    defaultOption.textContent = 'All Rows';
-                    rowSelect.appendChild(defaultOption);
-
                     if (data.success && Array.isArray(data.rows)) {
+                        const defaultOption = document.createElement('option');
+                        defaultOption.value = '';
+                        defaultOption.textContent = 'All Rows';
+                        rowSelect.appendChild(defaultOption);
                         data.rows.forEach(function(row) {
                             const opt = document.createElement('option');
                             opt.value = row.row_number;
@@ -4181,18 +4184,16 @@ if (mysqli_num_rows($table_check) == 0) {
                             }
                             rowSelect.appendChild(opt);
                         });
+                        rowSelect.disabled = false;
                     } else {
-                        const opt = document.createElement('option');
-                        opt.value = '';
-                        opt.textContent = 'No rows found';
-                        rowSelect.appendChild(opt);
+                        const msg = (data && data.message) ? data.message : 'No rows found';
+                        resetRowSelect(msg.length > 50 ? 'Error loading rows' : msg, true);
                     }
-
-                    rowSelect.disabled = false;
                 })
                 .catch(error => {
                     console.error('Error loading rows:', error);
-                    resetRowSelect('Error loading rows', true);
+                    const msg = (error && error.message && error.message.length <= 50) ? error.message : 'Error loading rows';
+                    resetRowSelect(msg, true);
                 });
         }
 
