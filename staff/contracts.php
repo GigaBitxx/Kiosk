@@ -1002,6 +1002,28 @@ function deriveRenewalReminderDate($renewalRaw, $endRaw, $startRaw, $burialRaw) 
         .contract-status.cancelled { background: var(--gray-100); color: var(--gray-700); }
         .pending-archive-info { font-size: 0.7rem; color: #d97706; margin-top: 0.25rem; font-weight: 500; }
         .contract-info { font-size: 0.75rem; color: var(--gray-600); margin-top: 0.25rem; }
+        /* Status row in priority/expired cards: align label, badge, and pending text */
+        .priority-item-meta.priority-status-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .priority-item-meta.priority-status-row .contract-status {
+            flex-shrink: 0;
+        }
+        .priority-pending-archive {
+            font-size: 0.75rem;
+            color: #b45309;
+            font-weight: 500;
+        }
+        /* Status in table cells: same aligned layout */
+        .status-inline-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem;
+        }
 
         /* Actions - Consistent Button System */
         .action-buttons { 
@@ -1772,7 +1794,7 @@ function deriveRenewalReminderDate($renewalRaw, $endRaw, $startRaw, $burialRaw) 
                                     echo htmlspecialchars($section . '-' . $rowLetter . $plotNum);
                                 ?>
                             </div>
-                            <div class="priority-item-meta">
+                            <div class="priority-item-meta priority-status-row">
                                 <strong>Status:</strong>
                                 <?php 
                                     $pendingArchive = getPendingArchiveStatus($priority['contract_end_date'] ?? null, $p_status);
@@ -1782,10 +1804,10 @@ function deriveRenewalReminderDate($renewalRaw, $endRaw, $startRaw, $burialRaw) 
                                 ?>
                                 <span class="contract-status <?php echo $p_status_class; ?>">
                                     <?php echo ucwords(str_replace('_', ' ', $p_status)); ?>
-                                    <?php if ($pendingArchive['is_pending']): ?>
-                                        <span style="display: block; font-size: 0.65rem; margin-top: 0.25rem; font-weight: 500;">(Pending Archive - <?php echo $pendingArchive['days_remaining']; ?> day<?php echo $pendingArchive['days_remaining'] != 1 ? 's' : ''; ?> left)</span>
-                                    <?php endif; ?>
                                 </span>
+                                <?php if ($pendingArchive['is_pending']): ?>
+                                    <span class="priority-pending-archive">(Pending Archive - <?php echo $pendingArchive['days_remaining']; ?> day<?php echo $pendingArchive['days_remaining'] != 1 ? 's' : ''; ?> left)</span>
+                                <?php endif; ?>
                             </div>
                             <div class="priority-item-meta">
                                 <strong>Renewal Reminder:</strong>
@@ -1875,7 +1897,7 @@ function deriveRenewalReminderDate($renewalRaw, $endRaw, $startRaw, $burialRaw) 
                                                 echo htmlspecialchars($section . '-' . $rowLetter . $plotNum);
                                             ?>
                                         </div>
-                                        <div class="priority-item-meta">
+                                        <div class="priority-item-meta priority-status-row">
                                             <strong>Status:</strong>
                                             <?php 
                                                 $pendingArchive = getPendingArchiveStatus($priority['contract_end_date'] ?? null, $p_status);
@@ -1885,10 +1907,10 @@ function deriveRenewalReminderDate($renewalRaw, $endRaw, $startRaw, $burialRaw) 
                                             ?>
                                             <span class="contract-status <?php echo $p_status_class; ?>">
                                                 <?php echo ucwords(str_replace('_', ' ', $p_status)); ?>
-                                                <?php if ($pendingArchive['is_pending']): ?>
-                                                    <span style="display: block; font-size: 0.65rem; margin-top: 0.25rem; font-weight: 500;">(Pending Archive - <?php echo $pendingArchive['days_remaining']; ?> day<?php echo $pendingArchive['days_remaining'] != 1 ? 's' : ''; ?> left)</span>
-                                                <?php endif; ?>
                                             </span>
+                                            <?php if ($pendingArchive['is_pending']): ?>
+                                                <span class="priority-pending-archive">(Pending Archive - <?php echo $pendingArchive['days_remaining']; ?> day<?php echo $pendingArchive['days_remaining'] != 1 ? 's' : ''; ?> left)</span>
+                                            <?php endif; ?>
                                         </div>
                                         <div class="priority-item-meta">
                                             <strong>Renewal Reminder:</strong>
@@ -2122,12 +2144,14 @@ function deriveRenewalReminderDate($renewalRaw, $endRaw, $startRaw, $burialRaw) 
                                         $statusClass .= ' pending-archive';
                                     }
                                     ?>
-                                    <span class="contract-status <?php echo $statusClass; ?>">
-                                        <?php echo ucwords(str_replace('_', ' ', $status)); ?>
+                                    <div class="status-inline-wrap">
+                                        <span class="contract-status <?php echo $statusClass; ?>">
+                                            <?php echo ucwords(str_replace('_', ' ', $status)); ?>
+                                        </span>
                                         <?php if ($pendingArchive['is_pending']): ?>
-                                            <span style="display: block; font-size: 0.65rem; margin-top: 0.25rem; font-weight: 500;">(Pending Archive - <?php echo $pendingArchive['days_remaining']; ?> day<?php echo $pendingArchive['days_remaining'] != 1 ? 's' : ''; ?> left)</span>
+                                            <span class="priority-pending-archive">(Pending Archive - <?php echo $pendingArchive['days_remaining']; ?> day<?php echo $pendingArchive['days_remaining'] != 1 ? 's' : ''; ?> left)</span>
                                         <?php endif; ?>
-                                    </span>
+                                    </div>
                                 </td>
                                 <td>
                                     <?php 
@@ -2653,10 +2677,10 @@ function deriveRenewalReminderDate($renewalRaw, $endRaw, $startRaw, $burialRaw) 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <div>
                             <p style="margin: 0 0 0.5rem 0; font-size: 0.85rem; color: var(--gray-600);">Contract Status</p>
-                            <span class="contract-status ${statusClass}" style="display: inline-block;">
-                                ${statusText}
-                                ${pendingArchiveInfo ? `<span style="display: block; font-size: 0.65rem; margin-top: 0.25rem; font-weight: 500; word-wrap: break-word; overflow-wrap: break-word; white-space: normal;">(Pending Archive - ${pendingArchiveInfo.daysRemaining} day${pendingArchiveInfo.daysRemaining !== 1 ? 's' : ''} left)</span>` : ''}
-                            </span>
+                            <div class="status-inline-wrap">
+                                <span class="contract-status ${statusClass}" style="display: inline-block;">${statusText}</span>
+                                ${pendingArchiveInfo ? `<span class="priority-pending-archive">(Pending Archive - ${pendingArchiveInfo.daysRemaining} day${pendingArchiveInfo.daysRemaining !== 1 ? 's' : ''} left)</span>` : ''}
+                            </div>
                         </div>
                         ${contractYears !== null ? `
                         <div>
