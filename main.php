@@ -1,25 +1,6 @@
 <?php
 require_once 'config/database.php';
-
-// Check if there are any active assistance requests for today
-$has_pending_assistance = false;
-$today = date('Y-m-d');
-
-// Only run if table exists
-$check_assistance_table = mysqli_query($conn, "SHOW TABLES LIKE 'assistance_requests'");
-if ($check_assistance_table && mysqli_num_rows($check_assistance_table) > 0) {
-    $pending_query = "
-        SELECT 1 
-        FROM assistance_requests 
-        WHERE DATE(created_at) = '$today'
-          AND (archived IS NULL OR archived = 0)
-        LIMIT 1
-    ";
-    $pending_result = mysqli_query($conn, $pending_query);
-    if ($pending_result && mysqli_num_rows($pending_result) > 0) {
-        $has_pending_assistance = true;
-    }
-}
+// Note: Pending assistance marker is shown only on staff and admin dashboards, not on the kiosk.
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -1024,9 +1005,6 @@ if ($check_assistance_table && mysqli_num_rows($check_assistance_table) > 0) {
                     <button class="help-modal-assistance-btn" onclick="window.location.href='assistance.php'">
                         <span style="position:relative; display:inline-flex; align-items:center; gap:0.25rem;">
                             <i class='bx bx-help-circle'></i>
-                            <?php if ($has_pending_assistance): ?>
-                                <span style="position:absolute; top:-6px; right:-10px; width:10px; height:10px; border-radius:50%; background:#dc2626; border:2px solid #ffffff;"></span>
-                            <?php endif; ?>
                         </span>
                         <span id="requestAssistanceText">Request Assistance</span>
                     </button>
