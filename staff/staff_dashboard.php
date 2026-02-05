@@ -109,15 +109,21 @@ if (mysqli_num_rows($check_assistance_table) > 0) {
         }
     }
 
-    $today = date('Y-m-d');
+    // Use Asia/Manila for "today" so times match when users actually sent (Philippines)
+    $manila_tz = new DateTimeZone('Asia/Manila');
+    $utc_tz = new DateTimeZone('UTC');
+    $manila_today_start = (new DateTime('today', $manila_tz))->setTimezone($utc_tz)->format('Y-m-d H:i:s');
+    $manila_today_end = (new DateTime('tomorrow', $manila_tz))->modify('-1 second')->setTimezone($utc_tz)->format('Y-m-d H:i:s');
+    $today = (new DateTime('today', $manila_tz))->format('Y-m-d');
     
-    // Delete all requests from previous days (reset daily)
-    $delete_old_query = "DELETE FROM assistance_requests WHERE DATE(created_at) < '$today'";
+    // Delete all requests from previous days (reset daily, by Manila date)
+    $delete_old_query = "DELETE FROM assistance_requests WHERE created_at < '" . mysqli_real_escape_string($conn, $manila_today_start) . "'";
     mysqli_query($conn, $delete_old_query);
     
-    // Fetch only today's non-archived requests
+    // Fetch only today's non-archived requests (today = Manila day)
     $assistance_query = "SELECT * FROM assistance_requests 
-                        WHERE DATE(created_at) = '$today'
+                        WHERE created_at >= '" . mysqli_real_escape_string($conn, $manila_today_start) . "'
+                          AND created_at <= '" . mysqli_real_escape_string($conn, $manila_today_end) . "'
                           AND (archived IS NULL OR archived = 0)
                         ORDER BY 
                         CASE 
@@ -135,9 +141,10 @@ if (mysqli_num_rows($check_assistance_table) > 0) {
         $assistance_requests[] = $row;
     }
 
-    // Fetch today's archived requests (for archive list)
+    // Fetch today's archived requests (for archive list, Manila day)
     $archived_query = "SELECT * FROM assistance_requests 
-                        WHERE DATE(created_at) = '$today'
+                        WHERE created_at >= '" . mysqli_real_escape_string($conn, $manila_today_start) . "'
+                          AND created_at <= '" . mysqli_real_escape_string($conn, $manila_today_end) . "'
                           AND archived = 1
                         ORDER BY 
                         created_at DESC 
@@ -1720,21 +1727,20 @@ $timeline_type_icons = [
             });
         }
 
-        // Modern archive confirmation handling
-        const archiveForms = document.querySelectorAll('.assistance-archive-form');
+        // Modern archive confirmation handling (event delegation for dynamically added forms)
         const archiveOverlay = document.getElementById('archiveConfirmOverlay');
         const cancelBtn = document.getElementById('archiveConfirmCancel');
         const confirmBtn = document.getElementById('archiveConfirmConfirm');
         let pendingArchiveForm = null;
 
-        archiveForms.forEach(form => {
-            form.addEventListener('submit', function (e) {
+        document.addEventListener('submit', function (e) {
+            if (e.target && e.target.classList && e.target.classList.contains('assistance-archive-form')) {
                 e.preventDefault();
-                pendingArchiveForm = this;
+                pendingArchiveForm = e.target;
                 if (archiveOverlay) {
                     archiveOverlay.classList.add('active');
                 }
-            });
+            }
         });
 
         const closeArchiveOverlay = () => {
@@ -1771,6 +1777,154 @@ $timeline_type_icons = [
                 }
             });
         }
+
+        // Real-time assistance request polling (no page refresh needed)
+        const CATEGORY_ICONS = {
+            'help-finding-grave': 'bx bxs-pin',
+            'burial-schedule-inquiry': 'bx bx-square',
+            'map-navigation-help': 'bx bx-compass',
+            'general-inquiry': 'bx bx-bulb'
+        };
+        const CATEGORY_NAMES = {
+            'help-finding-grave': 'Help Finding a Grave',
+            'burial-schedule-inquiry': 'Burial Schedule Inquiry',
+            'map-navigation-help': 'Map Navigation Help',
+            'general-inquiry': 'General Inquiry'
+        };
+
+        function renderAssistanceItem(request, isArchived) {
+            const category = request.category || '';
+            const isUrgent = request.urgency === 'urgent';
+            let icon = 'bx bx-message-dots';
+            let categoryName = category ? category.replace(/-/g, ' ').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Other';
+            if (category === 'others' && request.custom_category) {
+                categoryName = escapeHtml(request.custom_category);
+                icon = 'bx bx-message-dots';
+            } else if (CATEGORY_ICONS[category]) {
+                icon = CATEGORY_ICONS[category];
+                categoryName = CATEGORY_NAMES[category] || categoryName;
+            }
+            const created = request.created_at_display || (request.created_at ? (function() {
+                const utc = request.created_at.replace(' ', 'T') + (request.created_at.indexOf('Z') >= 0 ? '' : 'Z');
+                return new Date(utc).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Manila' });
+            })() : '');
+            const desc = request.description ? escapeHtml(request.description).replace(/\n/g, '<br>') : '';
+            const isResolved = ['resolved', 'closed'].includes(request.status);
+            const statusClass = (request.status || 'pending').replace(/_/g, '-');
+
+            let actionsHtml = '';
+            if (!isArchived) {
+                if (!isResolved) {
+                    actionsHtml = `
+                        <form method="POST" action="">
+                            <input type="hidden" name="request_id" value="${parseInt(request.request_id) || 0}">
+                            <input type="hidden" name="assistance_action" value="mark_done">
+                            <button type="submit" class="assistance-action-btn done"><i class='bx bx-check'></i> Mark as done</button>
+                        </form>
+                    `;
+                }
+                actionsHtml += `
+                    <form method="POST" action="" class="assistance-archive-form">
+                        <input type="hidden" name="request_id" value="${parseInt(request.request_id) || 0}">
+                        <input type="hidden" name="assistance_action" value="archive">
+                        <button type="submit" class="assistance-action-btn archive" title="Archive request"><i class='bx bx-archive-in'></i></button>
+                    </form>
+                `;
+            }
+
+            const statusHtml = isArchived
+                ? '<span class="assistance-request-status archived">Archived</span>'
+                : `<span class="assistance-request-status ${statusClass}">${(request.status || 'pending').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>`;
+
+            return `
+                <div class="assistance-request-item ${isUrgent ? 'urgent' : ''}">
+                    <div class="assistance-request-header">
+                        <div class="assistance-request-category">
+                            <i class='${icon}'></i>
+                            <span>${categoryName}</span>
+                        </div>
+                        <span class="assistance-request-urgency ${request.urgency || 'normal'}">
+                            <i class='bx ${isUrgent ? 'bxs-hot' : 'bx-time-five'}'></i>
+                            ${(request.urgency || 'normal').charAt(0).toUpperCase() + (request.urgency || 'normal').slice(1)}
+                        </span>
+                    </div>
+                    ${desc ? `<div class="assistance-request-description">${desc}</div>` : ''}
+                    <div class="assistance-request-meta">
+                        <div>
+                            ${statusHtml}
+                            <small><i class='bx bx-time'></i> ${created}</small>
+                        </div>
+                        ${actionsHtml ? `<div class="assistance-request-actions">${actionsHtml}</div>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function renderEmpty(type) {
+            if (type === 'active') {
+                return '<div class="assistance-requests-empty"><i class=\'bx bx-inbox\'></i><p>No assistance requests at this time.</p></div>';
+            }
+            return '<div class="assistance-requests-empty"><i class=\'bx bx-archive\'></i><p>No archived requests for today.</p></div>';
+        }
+
+        let lastKnownRequestIds = new Set(<?php echo json_encode(array_map(function($r) { return (int)$r['request_id']; }, $assistance_requests)); ?>);
+
+        function pollAssistanceRequests() {
+            fetch('../api/get_assistance_requests.php')
+                .then(r => r.json())
+                .then(data => {
+                    const requests = data.requests || [];
+                    const archived = data.archived || [];
+                    const activeContainer = document.getElementById('activeRequestsContainer');
+                    const archivedContainer = document.getElementById('archivedRequestsContainer');
+                    const helpBtn = document.querySelector('.help-icon-btn');
+                    const indicator = document.querySelector('.assistance-indicator');
+
+                    const currentIds = new Set(requests.map(r => parseInt(r.request_id) || 0));
+                    const hasNew = [...currentIds].some(id => !lastKnownRequestIds.has(id));
+                    if (hasNew) {
+                        const newCount = [...currentIds].filter(id => !lastKnownRequestIds.has(id)).length;
+                        showAssistanceNotification(newCount === 1 ? 'New assistance request received!' : newCount + ' new assistance requests received!', 'success');
+                    }
+                    lastKnownRequestIds = currentIds;
+
+                    if (activeContainer) {
+                        activeContainer.innerHTML = requests.length
+                            ? requests.map(r => renderAssistanceItem(r, false)).join('')
+                            : renderEmpty('active');
+                    }
+                    if (archivedContainer) {
+                        const wasShowingArchived = archivedContainer.style.display === 'block';
+                        archivedContainer.innerHTML = archived.length
+                            ? archived.map(r => renderAssistanceItem(r, true)).join('')
+                            : renderEmpty('archived');
+                        if (wasShowingArchived) archivedContainer.style.display = 'block';
+                    }
+
+                    if (helpBtn) {
+                        if (requests.length > 0) {
+                            if (!indicator) {
+                                const span = document.createElement('span');
+                                span.className = 'assistance-indicator';
+                                span.title = 'There are pending assistance requests';
+                                helpBtn.appendChild(span);
+                            }
+                        } else if (indicator) {
+                            indicator.remove();
+                        }
+                    }
+                })
+                .catch(() => {});
+        }
+
+        pollAssistanceRequests();
+        setInterval(pollAssistanceRequests, 5000);
 
         // Trigger notification bubble after assistance actions
         <?php if (!empty($assistance_notification_message)): ?>
@@ -1828,7 +1982,9 @@ $timeline_type_icons = [
                             $category_name = isset($category_names[$category]) ? $category_names[$category] : ucwords(str_replace(['-', '_'], ' ', $category));
                         }
                         
-                        $request_date = new DateTime($request['created_at']);
+                        // DB stores UTC; show in Asia/Manila so time matches when user sent
+                        $request_date = new DateTime($request['created_at'], new DateTimeZone('UTC'));
+                        $request_date->setTimezone(new DateTimeZone('Asia/Manila'));
                         $is_resolved_or_closed = in_array($request['status'], ['resolved', 'closed'], true);
                     ?>
                         <div class="assistance-request-item <?php echo $is_urgent ? 'urgent' : ''; ?>">
@@ -1918,7 +2074,9 @@ $timeline_type_icons = [
                                 $category_name = isset($category_names[$category]) ? $category_names[$category] : ucwords(str_replace(['-', '_'], ' ', $category));
                             }
 
-                            $request_date = new DateTime($request['created_at']);
+                            // DB stores UTC; show in Asia/Manila so time matches when user sent
+                            $request_date = new DateTime($request['created_at'], new DateTimeZone('UTC'));
+                            $request_date->setTimezone(new DateTimeZone('Asia/Manila'));
                         ?>
                             <div class="assistance-request-item <?php echo $is_urgent ? 'urgent' : ''; ?>">
                                 <div class="assistance-request-header">

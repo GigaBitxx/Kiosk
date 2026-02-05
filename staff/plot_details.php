@@ -195,27 +195,63 @@ if ($is_restore_flow) {
 // If we are in restore flow, fetch archived contract data to pre-fill the form
 $archive_id = isset($_GET['archive_id']) ? (int)$_GET['archive_id'] : 0;
 $restore_source = null;
-if ($is_restore_flow && $archive_id > 0) {
-    $restore_sql = "SELECT 
-                        deceased_name,
-                        burial_date,
-                        date_of_death,
-                        contract_start_date,
-                        contract_end_date,
-                        contract_type,
-                        contract_status,
-                        contract_notes,
-                        renewal_reminder_date
-                    FROM archived_contracts
-                    WHERE archive_id = ?
-                    LIMIT 1";
-    if ($restore_stmt = mysqli_prepare($conn, $restore_sql)) {
-        mysqli_stmt_bind_param($restore_stmt, "i", $archive_id);
-        if (mysqli_stmt_execute($restore_stmt)) {
-            $restore_result = mysqli_stmt_get_result($restore_stmt);
-            $restore_source = mysqli_fetch_assoc($restore_result) ?: null;
+if ($is_restore_flow) {
+    $table_check = mysqli_query($conn, "SHOW TABLES LIKE 'archived_contracts'");
+    $has_archived_table = $table_check && mysqli_num_rows($table_check) > 0;
+    if ($has_archived_table) {
+        if ($archive_id > 0) {
+            $restore_sql = "SELECT 
+                                archive_id,
+                                deceased_name,
+                                burial_date,
+                                date_of_death,
+                                contract_start_date,
+                                contract_end_date,
+                                contract_type,
+                                contract_status,
+                                contract_notes,
+                                renewal_reminder_date
+                            FROM archived_contracts
+                            WHERE archive_id = ?
+                            LIMIT 1";
+            if ($restore_stmt = mysqli_prepare($conn, $restore_sql)) {
+                mysqli_stmt_bind_param($restore_stmt, "i", $archive_id);
+                if (mysqli_stmt_execute($restore_stmt)) {
+                    $restore_result = mysqli_stmt_get_result($restore_stmt);
+                    $restore_source = mysqli_fetch_assoc($restore_result) ?: null;
+                }
+                mysqli_stmt_close($restore_stmt);
+            }
         }
-        mysqli_stmt_close($restore_stmt);
+        // Fallback: if no restore data yet (missing or invalid archive_id), use latest archive for this plot
+        if (!$restore_source) {
+            $fallback_sql = "SELECT 
+                                archive_id,
+                                deceased_name,
+                                burial_date,
+                                date_of_death,
+                                contract_start_date,
+                                contract_end_date,
+                                contract_type,
+                                contract_status,
+                                contract_notes,
+                                renewal_reminder_date
+                            FROM archived_contracts
+                            WHERE plot_id = ?
+                            ORDER BY archived_at DESC
+                            LIMIT 1";
+            if ($fallback_stmt = mysqli_prepare($conn, $fallback_sql)) {
+                mysqli_stmt_bind_param($fallback_stmt, "i", $plot_id);
+                if (mysqli_stmt_execute($fallback_stmt)) {
+                    $fallback_result = mysqli_stmt_get_result($fallback_stmt);
+                    $restore_source = mysqli_fetch_assoc($fallback_result) ?: null;
+                    if ($restore_source && !empty($restore_source['archive_id'])) {
+                        $archive_id = (int)$restore_source['archive_id'];
+                    }
+                }
+                mysqli_stmt_close($fallback_stmt);
+            }
+        }
     }
 }
 
