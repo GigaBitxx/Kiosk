@@ -314,7 +314,11 @@ if ($exhum_table_check && mysqli_num_rows($exhum_table_check) > 0) {
 // Pre-load sections for target plot selection (used by exhumation section)
 $sections = [];
 if ($exhumation_enabled) {
-    $sections_query = "SELECT section_id, section_name, section_code FROM sections ORDER BY section_code, section_name";
+    // Only show sections that still have plots (prevents showing "deleted" / empty sections)
+    $sections_query = "SELECT s.section_id, s.section_name, s.section_code
+                       FROM sections s
+                       WHERE EXISTS (SELECT 1 FROM plots p WHERE p.section_id = s.section_id)
+                       ORDER BY s.section_code, s.section_name";
     $sections_result = mysqli_query($conn, $sections_query);
     if ($sections_result) {
         while ($row = mysqli_fetch_assoc($sections_result)) {

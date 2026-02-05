@@ -1,13 +1,31 @@
 <?php
-require_once '../includes/auth_check.php';
-if ($_SESSION['role'] !== 'staff') {
+// Prevent any accidental output (notices, BOM, includes) from breaking JSON
+if (ob_get_level()) {
+    ob_end_clean();
+}
+ob_start();
+
+header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+
+session_start();
+// Inline auth: auth_check.php may redirect (HTML), which breaks fetch(). Return JSON instead.
+if (!isset($_SESSION['staff_session']) || !isset($_SESSION['staff_user_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'staff') {
     http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Session expired or not authorized', 'plots' => []]);
     exit();
 }
+if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > 1800)) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Session expired', 'plots' => []]);
+    exit();
+}
+$_SESSION['last_activity'] = time();
 
 require_once '../config/database.php';
 
-header('Content-Type: application/json');
+// Discard any accidental output from config/includes so only our JSON is sent
+ob_clean();
 
 $section_id = isset($_GET['section_id']) ? intval($_GET['section_id']) : 0;
 $row_number = isset($_GET['row_number']) ? intval($_GET['row_number']) : 0;
@@ -63,4 +81,4 @@ echo json_encode([
     'plots' => $plots
 ]);
 
-
+exit();
