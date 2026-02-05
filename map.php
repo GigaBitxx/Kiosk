@@ -1588,6 +1588,8 @@ if ($result) {
         let hiddenPlotMarkers = [];
         // Currently highlighted plot marker (search result) – restore style when clearing
         let highlightedPlotMarker = null;
+        // When search matches a section, we highlight all its plot markers
+        let highlightedSectionMarkers = [];
 
         // Elements for centered search-result card
         const searchResultModal = document.getElementById('searchResultModal');
@@ -3384,10 +3386,7 @@ if ($result) {
 
         // Highlight the plot marker for search result (bold border), restore previous when changing search
         function highlightPlotMarker(plotId) {
-            if (highlightedPlotMarker && highlightedPlotMarker._originalStyle) {
-                highlightedPlotMarker.setStyle(highlightedPlotMarker._originalStyle);
-                highlightedPlotMarker = null;
-            }
+            clearPlotHighlight();
             if (!plotId) return;
             const marker = plotMarkersById[plotId] || plotMarkersById[String(plotId)] || plotMarkersById[Number(plotId)];
             if (!marker || !marker._originalStyle) return;
@@ -3401,11 +3400,41 @@ if ($result) {
             });
         }
 
+        // Highlight all plot markers in a section (e.g. when user searches by section name like "apollo")
+        function highlightSectionPlots(section) {
+            clearPlotHighlight();
+            if (!section || !section.plots || !Array.isArray(section.plots)) return;
+            const highlightStyle = {
+                weight: 4,
+                color: '#2563eb',
+                opacity: 1,
+                fillOpacity: 0.9
+            };
+            section.plots.forEach(plot => {
+                const plotId = plot.plot_id;
+                const marker = plotMarkersById[plotId] || plotMarkersById[String(plotId)] || plotMarkersById[Number(plotId)];
+                if (marker && marker._originalStyle) {
+                    marker.setStyle({
+                        weight: highlightStyle.weight,
+                        color: highlightStyle.color,
+                        fillColor: marker._originalStyle.fillColor,
+                        opacity: highlightStyle.opacity,
+                        fillOpacity: highlightStyle.fillOpacity
+                    });
+                    highlightedSectionMarkers.push(marker);
+                }
+            });
+        }
+
         function clearPlotHighlight() {
             if (highlightedPlotMarker && highlightedPlotMarker._originalStyle) {
                 highlightedPlotMarker.setStyle(highlightedPlotMarker._originalStyle);
                 highlightedPlotMarker = null;
             }
+            highlightedSectionMarkers.forEach(m => {
+                if (m && m._originalStyle) m.setStyle(m._originalStyle);
+            });
+            highlightedSectionMarkers = [];
         }
 
         // Open the small Leaflet popup anchored to the marker (no centered card)
@@ -3756,9 +3785,10 @@ if ($result) {
                 const centerLat = sectionLats.reduce((a, b) => a + b) / sectionLats.length;
                 const centerLng = sectionLngs.reduce((a, b) => a + b) / sectionLngs.length;
                 
-                // Center map on section (wayfinding only when user clicks "Show Directions")
+                // Center map on section and highlight all plots in it
                 const zoomLevel = getResponsiveZoom(19, 18);
                 map.flyTo([centerLat, centerLng], zoomLevel, { duration: 0.8 });
+                setTimeout(() => highlightSectionPlots(section), 400);
                 return;
             }
 
