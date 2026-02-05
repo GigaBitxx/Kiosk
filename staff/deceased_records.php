@@ -950,6 +950,29 @@ if (mysqli_num_rows($table_check) == 0) {
             $query .= " AND p.plot_number LIKE ?";
             $params[] = "%{$parts[2]}%";
             $types .= 's';
+        } elseif (preg_match('/^([A-Za-z]+)([0-9]+)$/', $plot_term, $m)) {
+            // Support "A2", "a2", "B3" format = RowLetter + PlotNumber (all records in that row-plot)
+            $row_val = rowLetterToNumber($m[1]);
+            $plot_num = $m[2];
+            if ($row_val !== null) {
+                // Match exact plot number; for single digit also match with leading zero (e.g. "2" or "02")
+                if (strlen($plot_num) === 1) {
+                    $query .= " AND p.row_number = ? AND (p.plot_number = ? OR p.plot_number = ?)";
+                    $params[] = $row_val;
+                    $params[] = $plot_num;
+                    $params[] = '0' . $plot_num;
+                    $types .= 'iss';
+                } else {
+                    $query .= " AND p.row_number = ? AND p.plot_number = ?";
+                    $params[] = $row_val;
+                    $params[] = $plot_num;
+                    $types .= 'is';
+                }
+            } else {
+                $query .= " AND p.plot_number LIKE ?";
+                $params[] = "%{$plot_term}%";
+                $types .= 's';
+            }
         } else {
             // Simple search: match plot_number, section_name, or numeric row
             $query .= " AND (p.plot_number LIKE ? OR s.section_name LIKE ?";
