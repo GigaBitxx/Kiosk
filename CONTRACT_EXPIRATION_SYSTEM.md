@@ -51,8 +51,15 @@ function run_contract_maintenance($conn, $is_cli = false)
 This function:
 - Updates expired contracts
 - Archives deceased records after 7-day grace period
-- Frees plots and clears contract data
+- Frees plots and clears contract data (including all contract fields)
 - Updates renewal-needed status
+
+### Contract Update Logic
+When contracts are updated via `/staff/update_contract.php`:
+- Contract status is **automatically calculated** based on end date
+- Cannot manually override status to 'active' if date has passed
+- Maintenance runs immediately after update to check for archiving
+- This ensures contract updates don't bypass the expiration system
 
 ### Automatic Execution
 The maintenance runs automatically when these pages are accessed:
@@ -123,12 +130,43 @@ Check that:
 1. Contract type is "temporary" (permanent contracts don't auto-expire)
 2. Deceased record was created more than 7 days ago
 3. The maintenance script is running (visit any staff page or check cron job)
+4. Run the fix script: `/staff/fix_expired_contracts.php`
 
 ### Manual override needed?
 Staff can manually change plot status from the Plot Details page, which will:
 - Archive the deceased record immediately
 - Free the plot regardless of grace period
 - Log the manual action
+
+### Fix Utility Script
+If you encounter issues with expired contracts not being archived, use the fix utility:
+
+**URL:** `/staff/fix_expired_contracts.php`
+
+This script will:
+1. Set `contract_type = 'temporary'` for any contracts missing this field
+2. Update all contract statuses based on their end dates
+3. Show which contracts will be archived
+4. Run the maintenance to archive expired contracts
+5. Display a summary of the current state
+
+**How to use:**
+1. Log in as staff
+2. Navigate to: `http://your-domain/staff/fix_expired_contracts.php`
+3. The script runs automatically and shows detailed results
+4. Return to contracts or plots page to see the changes
+
+### Debug Script
+For technical debugging, use:
+
+**URL:** `/staff/debug_contract_maintenance.php`
+
+This shows:
+- All expired/expiring contracts
+- Days since expiration
+- Contract types and statuses
+- Whether each contract should be archived and why/why not
+- Results of running the maintenance
 
 ## Future Enhancements
 
