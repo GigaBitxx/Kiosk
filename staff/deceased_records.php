@@ -1561,6 +1561,116 @@ if (mysqli_num_rows($table_check) == 0) {
             border-radius: 8px;
         }
         
+        /* Delete Confirmation Modal - same as system (contracts, edit_record) */
+        .delete-confirm-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        .delete-confirm-modal-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .delete-confirm-modal {
+            background: #fff;
+            border-radius: 12px;
+            padding: 0;
+            max-width: 550px;
+            width: 90%;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+            transform: scale(0.9);
+            transition: transform 0.25s ease;
+            overflow: hidden;
+        }
+        .delete-confirm-modal-overlay.show .delete-confirm-modal {
+            transform: scale(1);
+        }
+        .delete-modal-header {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: #fff;
+            padding: 20px 24px;
+            font-weight: 600;
+            font-size: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .delete-modal-close-btn {
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: background 0.2s ease;
+        }
+        .delete-modal-close-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .delete-modal-body {
+            padding: 24px;
+            color: #1d2a38;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+        .delete-modal-body .warning-icon {
+            font-size: 32px;
+            margin-bottom: 12px;
+            display: block;
+        }
+        .delete-modal-footer {
+            padding: 16px 24px;
+            background: #f8f9fa;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            border-top: 1px solid #e0e0e0;
+        }
+        .delete-modal-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .delete-modal-btn-cancel {
+            background: #fff;
+            color: #6c757d;
+            border: 1px solid #e0e0e0;
+        }
+        .delete-modal-btn-cancel:hover {
+            background: #f8f9fa;
+            border-color: #d0d0d0;
+        }
+        .delete-modal-btn-confirm {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: #fff;
+        }
+        .delete-modal-btn-confirm:hover {
+            background: linear-gradient(135deg, #c0392b, #a93226);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+        }
+        
         /* Modern Status Badges */
         .status-badge {
             display: inline-flex;
@@ -3339,7 +3449,7 @@ if (mysqli_num_rows($table_check) == 0) {
                 <p class="delete-warning">
                     <strong>Warning:</strong> This will permanently delete the selected record and make the plot available. This action cannot be undone.
                 </p>
-                <form method="POST" action="" onsubmit="return confirmSingleDelete()">
+                <form method="POST" action="" id="formDeleteSingle" onsubmit="return confirmSingleDelete(event)">
                     <input type="hidden" name="action" value="delete_record">
                     <div class="form-group">
                         <label for="record_id">Select Record to Delete</label>
@@ -3404,9 +3514,9 @@ if (mysqli_num_rows($table_check) == 0) {
             <div class="delete-section-item" style="margin-top: 32px; padding-top: 32px; border-top: 1px solid #e0e0e0;">
                 <h4>Bulk Delete Records by Section</h4>
                 <p class="delete-warning">
-                    <strong>Warning:</strong> This will permanently delete ALL deceased records in the selected section and make their plots available.
+                    <strong>Warning:</strong> This will permanently delete ALL deceased records in the selected section and make their plots available. This action cannot be undone.
                 </p>
-                <form method="POST" action="" onsubmit="return confirmBulkDelete()">
+                <form method="POST" action="" id="formBulkDeleteSection" onsubmit="return confirmBulkDelete(event)">
                     <input type="hidden" name="action" value="bulk_delete_section">
                     <div class="form-group">
                         <label for="bulk_delete_section">Select Section to Delete</label>
@@ -3437,7 +3547,7 @@ if (mysqli_num_rows($table_check) == 0) {
                 <p class="delete-warning">
                     <strong>Warning:</strong> This will permanently delete ALL deceased records in the selected row (ROW A - ROW E) for the chosen section and make those plots available. This action cannot be undone.
                 </p>
-                <form method="POST" action="" onsubmit="return confirmBulkDeleteRows()">
+                <form method="POST" action="" id="formBulkDeleteRows" onsubmit="return confirmBulkDeleteRows(event)">
                     <input type="hidden" name="action" value="bulk_delete_rows">
                     <div class="form-group">
                         <label for="row_delete_section">Select Section</label>
@@ -4019,6 +4129,25 @@ if (mysqli_num_rows($table_check) == 0) {
     }
 </script>
 
+<!-- Delete Record(s) Confirmation Modal - same style as system -->
+<div id="deleteRecordConfirmModal" class="delete-confirm-modal-overlay" onclick="if(event.target===this) closeDeleteRecordConfirmModal();">
+    <div class="delete-confirm-modal" onclick="event.stopPropagation();">
+        <div class="delete-modal-header">
+            <span>Delete Record(s)</span>
+            <button type="button" class="delete-modal-close-btn" onclick="closeDeleteRecordConfirmModal();">&times;</button>
+        </div>
+        <div class="delete-modal-body">
+            <span class="warning-icon">⚠️</span>
+            <p id="deleteRecordConfirmMessage" style="margin: 0 0 12px 0; font-weight: 500;"></p>
+            <p style="margin: 0; font-size: 14px; color: #6c757d;">This action cannot be undone and will make the plot(s) available.</p>
+        </div>
+        <div class="delete-modal-footer">
+            <button type="button" class="delete-modal-btn delete-modal-btn-cancel" onclick="closeDeleteRecordConfirmModal();">Cancel</button>
+            <button type="button" class="delete-modal-btn delete-modal-btn-confirm" onclick="confirmDeleteRecordSubmit();">Confirm Delete</button>
+        </div>
+    </div>
+</div>
+
 <!-- View Record Modal -->
 <div class="modal-bg" id="viewRecordModal">
     <div class="modal-content">
@@ -4435,58 +4564,79 @@ if (mysqli_num_rows($table_check) == 0) {
         }
     };
     
-    // Delete Confirmation Functions
-    window.confirmSingleDelete = function() {
-        const recordSelect = document.getElementById('record_id');
-        const recordName = recordSelect.options[recordSelect.selectedIndex]?.getAttribute('data-name');
+    // Delete Confirmation - custom modal (same style as system)
+    var _pendingDeleteForm = null;
+    
+    function showDeleteRecordConfirmModal(message) {
+        var el = document.getElementById('deleteRecordConfirmMessage');
+        if (el) el.textContent = message;
+        var overlay = document.getElementById('deleteRecordConfirmModal');
+        if (overlay) overlay.classList.add('show');
+    }
+    
+    window.closeDeleteRecordConfirmModal = function() {
+        var overlay = document.getElementById('deleteRecordConfirmModal');
+        if (overlay) overlay.classList.remove('show');
+        _pendingDeleteForm = null;
+    };
+    
+    window.confirmDeleteRecordSubmit = function() {
+        if (_pendingDeleteForm) {
+            _pendingDeleteForm.submit();
+        }
+        closeDeleteRecordConfirmModal();
+    };
+    
+    window.confirmSingleDelete = function(ev) {
+        var recordSelect = document.getElementById('record_id');
+        var recordName = recordSelect && recordSelect.options[recordSelect.selectedIndex] ? recordSelect.options[recordSelect.selectedIndex].getAttribute('data-name') : '';
         
-        if (!recordSelect || recordSelect.value === '') {
+        if (!recordSelect || !recordSelect.value) {
             alert('Please select a record to delete.');
             return false;
         }
-        
-        return confirm(`Are you sure you want to delete the record for "${recordName}"?\n\nThis action cannot be undone and will make the plot available.\n\nDo you want to continue?`);
+        ev.preventDefault();
+        _pendingDeleteForm = ev.target;
+        showDeleteRecordConfirmModal('Are you sure you want to delete the record for "' + (recordName || '') + '"?');
+        return false;
     };
     
-    window.confirmBulkDelete = function() {
-        const sectionSelect = document.getElementById('bulk_delete_section');
-        const sectionName = sectionSelect.options[sectionSelect.selectedIndex]?.getAttribute('data-name');
+    window.confirmBulkDelete = function(ev) {
+        var sectionSelect = document.getElementById('bulk_delete_section');
+        var sectionName = sectionSelect && sectionSelect.options[sectionSelect.selectedIndex] ? sectionSelect.options[sectionSelect.selectedIndex].getAttribute('data-name') : '';
         
-        if (!sectionSelect || sectionSelect.value === '') {
+        if (!sectionSelect || !sectionSelect.value) {
             alert('Please select a section to delete.');
             return false;
         }
-        
-        return confirm(`WARNING: This will permanently delete ALL deceased records in "${sectionName}"!\n\nThis action cannot be undone and will make all plots in this section available.\n\nAre you absolutely sure you want to continue?`);
+        ev.preventDefault();
+        _pendingDeleteForm = ev.target;
+        showDeleteRecordConfirmModal('Are you sure you want to delete ALL deceased records in "' + (sectionName || '') + '"?');
+        return false;
     };
     
-    window.confirmBulkDeleteRows = function() {
-        const sectionSelect = document.getElementById('row_delete_section');
-        const rowsSelect = document.getElementById('row_delete_rows');
+    window.confirmBulkDeleteRows = function(ev) {
+        var sectionSelect = document.getElementById('row_delete_section');
+        var rowsSelect = document.getElementById('row_delete_rows');
         
         if (!sectionSelect || !rowsSelect) {
             alert('Form elements for row deletion are missing.');
             return false;
         }
-        
         if (!sectionSelect.value) {
             alert('Please select a section to delete records from.');
             return false;
         }
-        
         if (!rowsSelect.value) {
             alert('Please select a row (A-E) to delete.');
             return false;
         }
-        
-        const sectionName = sectionSelect.options[sectionSelect.selectedIndex]?.textContent.trim();
-        const rowLabel = rowsSelect.options[rowsSelect.selectedIndex]?.textContent.trim();
-        
-        return confirm(
-            `Are you sure you want to delete ALL deceased records in ${sectionName} for ${rowLabel}?\n\n` +
-            `This action cannot be undone and will make the corresponding plots available.\n\n` +
-            `Do you want to continue?`
-        );
+        var sectionName = sectionSelect.options[sectionSelect.selectedIndex] ? sectionSelect.options[sectionSelect.selectedIndex].textContent.trim() : '';
+        var rowLabel = rowsSelect.options[rowsSelect.selectedIndex] ? rowsSelect.options[rowsSelect.selectedIndex].textContent.trim() : '';
+        ev.preventDefault();
+        _pendingDeleteForm = ev.target;
+        showDeleteRecordConfirmModal('Are you sure you want to delete ALL deceased records in ' + sectionName + ' for ' + rowLabel + '?');
+        return false;
     };
     
     // Archive Modal Functions
