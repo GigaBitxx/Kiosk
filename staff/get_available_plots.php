@@ -44,7 +44,7 @@ if ($section_id <= 0 || $row_number <= 0) {
 // Get plots for the given section and row (any status), excluding the specified plot if provided
 $query = "SELECT plot_id, plot_number, status
           FROM plots
-          WHERE section_id = ? AND row_number = ?";
+          WHERE section_id = ? AND `row_number` = ?";
           
 if ($exclude_plot_id > 0) {
     $query .= " AND plot_id != ?";
