@@ -1346,44 +1346,57 @@ if ($result) {
             pointer-events: none;
         }
 
-        .eta-summary-card {
-            margin-top: 12px;
-            padding: 12px;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            background: #f8fafc;
+        .eta-floating-badge {
+            position: fixed;
+            top: 118px;
+            left: 18px;
+            z-index: 2400;
+            min-width: 142px;
+            max-width: 190px;
+            background: rgba(255, 255, 255, 0.97);
+            border: 1px solid rgba(15, 23, 42, 0.12);
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.22);
+            padding: 8px 10px;
+            display: none;
         }
 
-        .eta-summary-title {
-            font-size: 0.9rem;
-            font-weight: 700;
-            color: #0f172a;
-            margin-bottom: 8px;
-        }
-
-        .eta-summary-row {
+        .eta-floating-row {
             display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 8px;
-        }
-
-        .eta-summary-pill {
-            display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 6px 10px;
-            border-radius: 999px;
-            font-size: 0.82rem;
-            font-weight: 600;
-            background: #e2e8f0;
-            color: #1e293b;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #166534;
+            line-height: 1.1;
+            margin-bottom: 4px;
         }
 
-        .eta-summary-distance {
-            margin: 0;
-            font-size: 0.83rem;
+        .eta-floating-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .eta-floating-row i {
             color: #475569;
+            font-size: 0.95rem;
+        }
+
+        .eta-floating-distance {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 500;
+            color: #334155;
+            margin-left: 22px;
+        }
+
+        @media (max-width: 768px) {
+            .eta-floating-badge {
+                top: 102px;
+                left: 10px;
+                min-width: 132px;
+                max-width: 170px;
+                padding: 7px 9px;
+            }
         }
 
         /* Pulsating destination marker */
@@ -1416,6 +1429,7 @@ if ($result) {
 </head>
 <body>
     <div id="map"></div>
+    <div id="etaFloatingBadge" class="eta-floating-badge" aria-live="polite"></div>
 
     <a href="main.php" class="back-to-home-btn">
         <i class="bi bi-arrow-left"></i> Home
@@ -2598,6 +2612,11 @@ if ($result) {
                 wayfindingRoutingControl = null;
             }
             naturalLanguageInstructions = [];
+            const etaFloatingBadge = document.getElementById('etaFloatingBadge');
+            if (etaFloatingBadge) {
+                etaFloatingBadge.style.display = 'none';
+                etaFloatingBadge.innerHTML = '';
+            }
             
             // Restore any plot markers that were hidden while showing directions
             if (hiddenPlotMarkers && hiddenPlotMarkers.length > 0) {
@@ -2780,6 +2799,15 @@ if ($result) {
             return Math.max(1, Math.round(hours * 60));
         }
 
+        // Internal cemetery driving has extra delays (slow turns, yielding, narrow paths).
+        // Add a fixed overhead and practical minimum so ETA does not look unrealistically short.
+        function estimateCarEtaMinutes(distanceMeters) {
+            const drivingMinutes = estimateEtaMinutes(distanceMeters, CAR_SPEED_KPH);
+            const maneuverOverheadMinutes = 2;
+            const practicalMinimumMinutes = 3;
+            return Math.max(practicalMinimumMinutes, drivingMinutes + maneuverOverheadMinutes);
+        }
+
         function formatEta(minutes) {
             if (!minutes || minutes <= 0) return 'N/A';
             if (minutes < 60) return `${minutes} min`;
@@ -2819,7 +2847,8 @@ if ($result) {
         }
 
         function updateEtaSummary(destinationName, routeCoordinates, knownDistanceMeters = null) {
-            if (!searchSuggestionPanel || !searchSuggestionList) return;
+            const etaFloatingBadge = document.getElementById('etaFloatingBadge');
+            if (!etaFloatingBadge) return;
 
             const routeDistance = Number(knownDistanceMeters);
             const computedMeters = Number.isFinite(routeDistance) && routeDistance > 0
@@ -2827,39 +2856,20 @@ if ($result) {
                 : calculateRouteDistanceMeters(routeCoordinates);
             const totalMeters = applyGoogleBaselineDistance(computedMeters);
             const walkMinutes = estimateEtaMinutes(totalMeters, WALK_SPEED_KPH);
-            const carMinutes = estimateEtaMinutes(totalMeters, CAR_SPEED_KPH);
-            const destinationLabel = (destinationName || 'Destination').toString();
-            const safeDestination = escapeHtml(destinationLabel);
-
-            const maxSteps = 3;
-            const previewSteps = naturalLanguageInstructions
-                .filter(step => step && step.text && !String(step.text).startsWith('Total distance:'))
-                .slice(0, maxSteps);
-
-            const stepsHtml = previewSteps.length
-                ? `<ol style="margin:8px 0 0 18px;padding:0;">
-                        ${previewSteps.map(step => `<li style="margin-bottom:4px;">${escapeHtml(step.text)}</li>`).join('')}
-                   </ol>`
-                : '';
-
-            searchSuggestionList.innerHTML = `
-                <div class="eta-summary-card">
-                    <div class="eta-summary-title">ETA to ${safeDestination}</div>
-                    <div class="eta-summary-row">
-                        <span class="eta-summary-pill"><i class="bi bi-person-walking"></i> Walk: ${formatEta(walkMinutes)}</span>
-                        <span class="eta-summary-pill"><i class="bi bi-car-front-fill"></i> Car: ${formatEta(carMinutes)}</span>
-                    </div>
-                    <p class="eta-summary-distance">Distance: about ${totalMeters} meters</p>
-                    ${stepsHtml}
+            const carMinutes = estimateCarEtaMinutes(totalMeters);
+            etaFloatingBadge.innerHTML = `
+                <div class="eta-floating-row">
+                    <i class="bi bi-car-front-fill"></i>
+                    <span>${formatEta(carMinutes)}</span>
                 </div>
+                <span class="eta-floating-distance">${totalMeters} m</span>
+                <div class="eta-floating-row" style="margin-top:6px;">
+                    <i class="bi bi-person-walking"></i>
+                    <span>${formatEta(walkMinutes)}</span>
+                </div>
+                <span class="eta-floating-distance">${totalMeters} m</span>
             `;
-
-            if (searchSuggestionTitle) {
-                searchSuggestionTitle.textContent = `Directions to ${destinationLabel}`;
-            }
-            searchSuggestionPanel.classList.remove('minimized');
-            searchSuggestionPanel.classList.add('active');
-            focusSuggestionPanelForMobile();
+            etaFloatingBadge.style.display = 'block';
         }
 
 
