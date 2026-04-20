@@ -2667,6 +2667,28 @@ if ($result) {
             }
         }
         
+        function haversineDistanceMeters(pointA, pointB) {
+            if (!Array.isArray(pointA) || !Array.isArray(pointB)) return 0;
+            const lat1 = Number(pointA[0]);
+            const lng1 = Number(pointA[1]);
+            const lat2 = Number(pointB[0]);
+            const lng2 = Number(pointB[1]);
+            if ([lat1, lng1, lat2, lng2].some(value => Number.isNaN(value))) return 0;
+
+            const toRad = value => (value * Math.PI) / 180;
+            const earthRadiusMeters = 6371000;
+            const dLat = toRad(lat2 - lat1);
+            const dLng = toRad(lng2 - lng1);
+            const rLat1 = toRad(lat1);
+            const rLat2 = toRad(lat2);
+
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(rLat1) * Math.cos(rLat2) *
+                Math.sin(dLng / 2) * Math.sin(dLng / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return earthRadiusMeters * c;
+        }
+
         // Generate natural language directions from waypoints
         function generateNaturalLanguageDirections(waypoints, destinationName) {
             const instructions = [];
@@ -2684,11 +2706,8 @@ if ($result) {
             for (let i = 1; i < waypoints.length; i++) {
                 const prev = waypoints[i - 1];
                 const curr = waypoints[i];
-                const segmentDistance = distance(prev, curr);
-                cumulativeDistance += segmentDistance;
-
-                // Convert distance to meters (approximate)
-                const distanceMeters = segmentDistance * 111000; // Rough conversion: 1 degree ≈ 111km
+                const distanceMeters = haversineDistanceMeters(prev, curr);
+                cumulativeDistance += distanceMeters;
                 
                 // Determine direction based on coordinates
                 const latDiff = curr[0] - prev[0];
@@ -2734,7 +2753,7 @@ if ($result) {
             }
 
             // Add total distance summary
-            const totalMeters = Math.round(cumulativeDistance * 111000);
+            const totalMeters = Math.round(cumulativeDistance);
             if (instructions.length > 1) {
                 instructions.push({
                     step: stepNumber,
@@ -2748,11 +2767,11 @@ if ($result) {
 
         function calculateRouteDistanceMeters(routeCoordinates) {
             if (!Array.isArray(routeCoordinates) || routeCoordinates.length < 2) return 0;
-            let totalDegrees = 0;
+            let totalMeters = 0;
             for (let i = 1; i < routeCoordinates.length; i++) {
-                totalDegrees += distance(routeCoordinates[i - 1], routeCoordinates[i]);
+                totalMeters += haversineDistanceMeters(routeCoordinates[i - 1], routeCoordinates[i]);
             }
-            return Math.max(0, Math.round(totalDegrees * 111000));
+            return Math.max(0, Math.round(totalMeters));
         }
 
         function estimateEtaMinutes(distanceMeters, speedKph) {
@@ -2778,10 +2797,13 @@ if ($result) {
                 .replace(/'/g, '&#39;');
         }
 
-        function updateEtaSummary(destinationName, routeCoordinates) {
+        function updateEtaSummary(destinationName, routeCoordinates, knownDistanceMeters = null) {
             if (!searchSuggestionPanel || !searchSuggestionList) return;
 
-            const totalMeters = calculateRouteDistanceMeters(routeCoordinates);
+            const routeDistance = Number(knownDistanceMeters);
+            const totalMeters = Number.isFinite(routeDistance) && routeDistance > 0
+                ? Math.round(routeDistance)
+                : calculateRouteDistanceMeters(routeCoordinates);
             const walkMinutes = estimateEtaMinutes(totalMeters, 4.8); // Average walking speed
             const carMinutes = estimateEtaMinutes(totalMeters, 20);   // Slow in-compound driving estimate
             const destinationLabel = (destinationName || 'Destination').toString();
@@ -2877,9 +2899,13 @@ if ($result) {
                             console.error('Error checking straightness of external route:', e);
                         }
 
+                        const osrmDistanceMeters = data.routes[0] && Number.isFinite(data.routes[0].distance)
+                            ? Number(data.routes[0].distance)
+                            : null;
+
                         // Generate natural language directions
                         naturalLanguageInstructions = generateNaturalLanguageDirections(routeCoordinates, destinationName || 'Destination');
-                        updateEtaSummary(destinationName || 'Destination', routeCoordinates);
+                        updateEtaSummary(destinationName || 'Destination', routeCoordinates, osrmDistanceMeters);
 
                         // Add start marker at kiosk (no destination circle)
                         wayfindingStartMarker = L.marker([startLat, startLng], { icon: startIcon }).addTo(map);
