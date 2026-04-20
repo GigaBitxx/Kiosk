@@ -2797,15 +2797,37 @@ if ($result) {
                 .replace(/'/g, '&#39;');
         }
 
+        // Google Maps perimeter reference supplied by user.
+        // We only snap when computed distance is close to avoid distorting short routes.
+        const GOOGLE_BASELINE_DISTANCE_METERS = 654;
+        const GOOGLE_BASELINE_SNAP_TOLERANCE = 0.2; // +/-20%
+        const WALK_SPEED_KPH = 2; // User-calibrated slower walking speed
+        const CAR_SPEED_KPH = 10; // User-calibrated slower driving speed
+
+        function applyGoogleBaselineDistance(distanceMeters) {
+            const parsed = Number(distanceMeters);
+            if (!Number.isFinite(parsed) || parsed <= 0) {
+                return GOOGLE_BASELINE_DISTANCE_METERS;
+            }
+
+            const deviation = Math.abs(parsed - GOOGLE_BASELINE_DISTANCE_METERS) / GOOGLE_BASELINE_DISTANCE_METERS;
+            if (deviation <= GOOGLE_BASELINE_SNAP_TOLERANCE) {
+                return GOOGLE_BASELINE_DISTANCE_METERS;
+            }
+
+            return Math.round(parsed);
+        }
+
         function updateEtaSummary(destinationName, routeCoordinates, knownDistanceMeters = null) {
             if (!searchSuggestionPanel || !searchSuggestionList) return;
 
             const routeDistance = Number(knownDistanceMeters);
-            const totalMeters = Number.isFinite(routeDistance) && routeDistance > 0
+            const computedMeters = Number.isFinite(routeDistance) && routeDistance > 0
                 ? Math.round(routeDistance)
                 : calculateRouteDistanceMeters(routeCoordinates);
-            const walkMinutes = estimateEtaMinutes(totalMeters, 4.8); // Average walking speed
-            const carMinutes = estimateEtaMinutes(totalMeters, 20);   // Slow in-compound driving estimate
+            const totalMeters = applyGoogleBaselineDistance(computedMeters);
+            const walkMinutes = estimateEtaMinutes(totalMeters, WALK_SPEED_KPH);
+            const carMinutes = estimateEtaMinutes(totalMeters, CAR_SPEED_KPH);
             const destinationLabel = (destinationName || 'Destination').toString();
             const safeDestination = escapeHtml(destinationLabel);
 
