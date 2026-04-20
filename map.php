@@ -1350,6 +1350,7 @@ if ($result) {
             position: fixed;
             top: 118px;
             left: 18px;
+            transform: translate(-50%, -50%);
             z-index: 2400;
             min-width: 142px;
             max-width: 190px;
@@ -1687,6 +1688,7 @@ if ($result) {
         let wayfindingEndMarker = null;
         let wayfindingRoutingControl = null; // Not used anymore (no external routing)
         let destinationPulseMarker = null; // (no longer used visually)
+        let currentEtaRouteCoordinates = null;
         let naturalLanguageInstructions = []; // Store step-by-step directions
         const kioskLocation = [14.264531, 120.866048]; // Kiosk location (starting point for directions)
         const adminOfficeLocation = kioskLocation; // Keep for compatibility with existing facilities data
@@ -1770,8 +1772,10 @@ if ($result) {
 
         // Keep mini-map synced with main map
         function syncMiniMapView() {
-            if (!miniMap) return;
-            miniMap.setView(map.getCenter(), map.getZoom());
+            if (miniMap) {
+                miniMap.setView(map.getCenter(), map.getZoom());
+            }
+            positionEtaBadgeOnRoute();
         }
 
         map.on('move zoom', syncMiniMapView);
@@ -2612,6 +2616,7 @@ if ($result) {
                 wayfindingRoutingControl = null;
             }
             naturalLanguageInstructions = [];
+            currentEtaRouteCoordinates = null;
             const etaFloatingBadge = document.getElementById('etaFloatingBadge');
             if (etaFloatingBadge) {
                 etaFloatingBadge.style.display = 'none';
@@ -2846,9 +2851,65 @@ if ($result) {
             return Math.round(parsed);
         }
 
+        function getRouteMidpointLatLng(routeCoordinates) {
+            if (!Array.isArray(routeCoordinates) || routeCoordinates.length < 2) return null;
+
+            let totalLength = 0;
+            const segmentLengths = [];
+            for (let i = 1; i < routeCoordinates.length; i++) {
+                const segmentLength = haversineDistanceMeters(routeCoordinates[i - 1], routeCoordinates[i]);
+                segmentLengths.push(segmentLength);
+                totalLength += segmentLength;
+            }
+
+            if (totalLength <= 0) {
+                return routeCoordinates[Math.floor(routeCoordinates.length / 2)];
+            }
+
+            const halfLength = totalLength / 2;
+            let traversed = 0;
+
+            for (let i = 1; i < routeCoordinates.length; i++) {
+                const segmentLength = segmentLengths[i - 1];
+                if ((traversed + segmentLength) >= halfLength) {
+                    const ratio = segmentLength > 0 ? ((halfLength - traversed) / segmentLength) : 0;
+                    const start = routeCoordinates[i - 1];
+                    const end = routeCoordinates[i];
+                    return [
+                        start[0] + ((end[0] - start[0]) * ratio),
+                        start[1] + ((end[1] - start[1]) * ratio)
+                    ];
+                }
+                traversed += segmentLength;
+            }
+
+            return routeCoordinates[Math.floor(routeCoordinates.length / 2)];
+        }
+
+        function positionEtaBadgeOnRoute() {
+            const etaFloatingBadge = document.getElementById('etaFloatingBadge');
+            if (!etaFloatingBadge || !map || !currentEtaRouteCoordinates || currentEtaRouteCoordinates.length < 2) return;
+
+            const midpoint = getRouteMidpointLatLng(currentEtaRouteCoordinates);
+            if (!midpoint) return;
+
+            const mapSize = map.getSize();
+            const midpointPixel = map.latLngToContainerPoint(midpoint);
+            const halfBadgeWidth = Math.max(70, Math.round((etaFloatingBadge.offsetWidth || 140) / 2));
+            const halfBadgeHeight = Math.max(28, Math.round((etaFloatingBadge.offsetHeight || 56) / 2));
+            const padding = 10;
+
+            const clampedX = Math.max(halfBadgeWidth + padding, Math.min(mapSize.x - halfBadgeWidth - padding, midpointPixel.x));
+            const clampedY = Math.max(halfBadgeHeight + padding, Math.min(mapSize.y - halfBadgeHeight - padding, midpointPixel.y));
+
+            etaFloatingBadge.style.left = `${clampedX}px`;
+            etaFloatingBadge.style.top = `${clampedY}px`;
+        }
+
         function updateEtaSummary(destinationName, routeCoordinates, knownDistanceMeters = null) {
             const etaFloatingBadge = document.getElementById('etaFloatingBadge');
             if (!etaFloatingBadge) return;
+            currentEtaRouteCoordinates = Array.isArray(routeCoordinates) ? routeCoordinates : null;
 
             const routeDistance = Number(knownDistanceMeters);
             const computedMeters = Number.isFinite(routeDistance) && routeDistance > 0
@@ -2870,6 +2931,7 @@ if ($result) {
                 <span class="eta-floating-distance">${totalMeters} m</span>
             `;
             etaFloatingBadge.style.display = 'block';
+            positionEtaBadgeOnRoute();
         }
 
 
