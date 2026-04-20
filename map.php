@@ -1346,6 +1346,46 @@ if ($result) {
             pointer-events: none;
         }
 
+        .eta-summary-card {
+            margin-top: 12px;
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            background: #f8fafc;
+        }
+
+        .eta-summary-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 8px;
+        }
+
+        .eta-summary-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .eta-summary-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+
+        .eta-summary-distance {
+            margin: 0;
+            font-size: 0.83rem;
+            color: #475569;
+        }
+
         /* Pulsating destination marker */
         .destination-marker {
             animation: pulse 2s infinite;
@@ -2706,6 +2746,78 @@ if ($result) {
             return instructions;
         }
 
+        function calculateRouteDistanceMeters(routeCoordinates) {
+            if (!Array.isArray(routeCoordinates) || routeCoordinates.length < 2) return 0;
+            let totalDegrees = 0;
+            for (let i = 1; i < routeCoordinates.length; i++) {
+                totalDegrees += distance(routeCoordinates[i - 1], routeCoordinates[i]);
+            }
+            return Math.max(0, Math.round(totalDegrees * 111000));
+        }
+
+        function estimateEtaMinutes(distanceMeters, speedKph) {
+            if (!distanceMeters || !speedKph || speedKph <= 0) return 0;
+            const hours = (distanceMeters / 1000) / speedKph;
+            return Math.max(1, Math.round(hours * 60));
+        }
+
+        function formatEta(minutes) {
+            if (!minutes || minutes <= 0) return 'N/A';
+            if (minutes < 60) return `${minutes} min`;
+            const hours = Math.floor(minutes / 60);
+            const remMinutes = minutes % 60;
+            return remMinutes ? `${hours} hr ${remMinutes} min` : `${hours} hr`;
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function updateEtaSummary(destinationName, routeCoordinates) {
+            if (!searchSuggestionPanel || !searchSuggestionList) return;
+
+            const totalMeters = calculateRouteDistanceMeters(routeCoordinates);
+            const walkMinutes = estimateEtaMinutes(totalMeters, 4.8); // Average walking speed
+            const carMinutes = estimateEtaMinutes(totalMeters, 20);   // Slow in-compound driving estimate
+            const destinationLabel = (destinationName || 'Destination').toString();
+            const safeDestination = escapeHtml(destinationLabel);
+
+            const maxSteps = 3;
+            const previewSteps = naturalLanguageInstructions
+                .filter(step => step && step.text && !String(step.text).startsWith('Total distance:'))
+                .slice(0, maxSteps);
+
+            const stepsHtml = previewSteps.length
+                ? `<ol style="margin:8px 0 0 18px;padding:0;">
+                        ${previewSteps.map(step => `<li style="margin-bottom:4px;">${escapeHtml(step.text)}</li>`).join('')}
+                   </ol>`
+                : '';
+
+            searchSuggestionList.innerHTML = `
+                <div class="eta-summary-card">
+                    <div class="eta-summary-title">ETA to ${safeDestination}</div>
+                    <div class="eta-summary-row">
+                        <span class="eta-summary-pill"><i class="bi bi-person-walking"></i> Walk: ${formatEta(walkMinutes)}</span>
+                        <span class="eta-summary-pill"><i class="bi bi-car-front-fill"></i> Car: ${formatEta(carMinutes)}</span>
+                    </div>
+                    <p class="eta-summary-distance">Distance: about ${totalMeters} meters</p>
+                    ${stepsHtml}
+                </div>
+            `;
+
+            if (searchSuggestionTitle) {
+                searchSuggestionTitle.textContent = `Directions to ${destinationLabel}`;
+            }
+            searchSuggestionPanel.classList.remove('minimized');
+            searchSuggestionPanel.classList.add('active');
+            focusSuggestionPanelForMobile();
+        }
+
 
         // Try external OpenStreetMap-based routing (OSRM). Falls back to manual routing on error.
         function createWayfindingRouteExternal(startLat, startLng, endLat, endLng, destinationName) {
@@ -2767,6 +2879,7 @@ if ($result) {
 
                         // Generate natural language directions
                         naturalLanguageInstructions = generateNaturalLanguageDirections(routeCoordinates, destinationName || 'Destination');
+                        updateEtaSummary(destinationName || 'Destination', routeCoordinates);
 
                         // Add start marker at kiosk (no destination circle)
                         wayfindingStartMarker = L.marker([startLat, startLng], { icon: startIcon }).addTo(map);
@@ -2848,6 +2961,7 @@ if ($result) {
 
             // Generate natural language directions
             naturalLanguageInstructions = generateNaturalLanguageDirections(routeCoordinates, destinationName || 'Destination');
+            updateEtaSummary(destinationName || 'Destination', routeCoordinates);
             
             // Add start marker at kiosk (no destination circle)
             wayfindingStartMarker = L.marker([startLat, startLng], { icon: startIcon }).addTo(map);
