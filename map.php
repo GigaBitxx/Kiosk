@@ -2886,11 +2886,21 @@ if ($result) {
             return routeCoordinates[Math.floor(routeCoordinates.length / 2)];
         }
 
+        function getVisibleRouteCoordinates(routeCoordinates) {
+            if (!map || !Array.isArray(routeCoordinates) || routeCoordinates.length < 2) return routeCoordinates;
+            const bounds = map.getBounds();
+            if (!bounds) return routeCoordinates;
+
+            const visiblePoints = routeCoordinates.filter(point => bounds.contains([point[0], point[1]]));
+            return visiblePoints.length >= 2 ? visiblePoints : routeCoordinates;
+        }
+
         function positionEtaBadgeOnRoute() {
             const etaFloatingBadge = document.getElementById('etaFloatingBadge');
             if (!etaFloatingBadge || !map || !currentEtaRouteCoordinates || currentEtaRouteCoordinates.length < 2) return;
 
-            const midpoint = getRouteMidpointLatLng(currentEtaRouteCoordinates);
+            const visibleRouteCoordinates = getVisibleRouteCoordinates(currentEtaRouteCoordinates);
+            const midpoint = getRouteMidpointLatLng(visibleRouteCoordinates);
             if (!midpoint) return;
 
             const mapSize = map.getSize();
@@ -2921,12 +2931,12 @@ if ($result) {
             etaFloatingBadge.innerHTML = `
                 <div class="eta-floating-row">
                     <i class="bi bi-car-front-fill"></i>
-                    <span>${formatEta(carMinutes)}</span>
+                    <span>Car: ${formatEta(carMinutes)}</span>
                 </div>
                 <span class="eta-floating-distance">${totalMeters} m</span>
                 <div class="eta-floating-row" style="margin-top:6px;">
                     <i class="bi bi-person-walking"></i>
-                    <span>${formatEta(walkMinutes)}</span>
+                    <span>Walk: ${formatEta(walkMinutes)}</span>
                 </div>
                 <span class="eta-floating-distance">${totalMeters} m</span>
             `;
