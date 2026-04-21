@@ -2098,6 +2098,10 @@ while ($row = mysqli_fetch_assoc($result)) {
                     alert('Start and end time cannot be the same.');
                     return;
                 }
+                if (startTimeVal && endTimeVal && endTimeVal <= startTimeVal) {
+                    showEventNotification('End time must be later than start time.', 'error');
+                    return;
+                }
                 
                 const messageDiv = modalEl.querySelector('#addEventMessage');
                 messageDiv.style.display = 'none';
@@ -2233,6 +2237,10 @@ while ($row = mysqli_fetch_assoc($result)) {
                 const endTimeVal = formData.get('end_time');
                 if (startTimeVal && endTimeVal && startTimeVal === endTimeVal) {
                     alert('Start and end time cannot be the same.');
+                    return;
+                }
+                if (startTimeVal && endTimeVal && endTimeVal <= startTimeVal) {
+                    showEventNotification('End time must be later than start time.', 'error');
                     return;
                 }
                 

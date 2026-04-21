@@ -28,6 +28,9 @@ try {
     if ($start_time === $end_time) {
         throw new Exception('Start and end time cannot be the same.');
     }
+    if (strtotime($end_time) <= strtotime($start_time)) {
+        throw new Exception('End time must be later than start time.');
+    }
 
     // Validate event type
     $valid_types = ['burial', 'maintenance', 'funeral', 'chapel', 'appointment', 'holiday', 'exhumation', 'cremation', 'other'];
